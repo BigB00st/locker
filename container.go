@@ -7,6 +7,10 @@ import (
 	"syscall"
 )
 
+const fsPath = "/home/amit/Documents/container-test/test"
+const linuxDefaultPATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+
 // Usage: go run main.go run <cmd> <args>
 func main() {
 	fmt.Println("***ENTERED MAIN***")
@@ -49,6 +53,10 @@ func child() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	must(syscall.Sethostname([]byte("locker")))
+	must(syscall.Chroot(fsPath))
+	os.Setenv("PATH", linuxDefaultPATH)
+	must(os.Chdir("/"))
 	must(cmd.Run())
 }
 
