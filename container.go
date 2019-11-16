@@ -7,13 +7,8 @@ import (
 	"syscall"
 )
 
-const fsPath = "/home/amit/Documents/container-test/test"
-const linuxDefaultPATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-
-
 // Usage: go run main.go run <cmd> <args>
 func main() {
-	fmt.Println("***ENTERED MAIN***")
 	switch os.Args[1] {
 	case "run":
 		parent()
@@ -22,6 +17,7 @@ func main() {
 	default:
 		panic("help")
 	}
+
 }
 
 // Parent function, forks and execs child, which runs the requested command
@@ -46,7 +42,10 @@ func parent() {
 
 // Child process, runs requested command
 func child() {
-	fmt.Printf("***ENTERED CHILD*** Running %v as PID: %d\n", os.Args[2:], os.Getpid())
+	fmt.Printf("***ENTERED CHILD***\nRunning %v as PID: %d\n", os.Args[2:], os.Getpid())
+
+	config := NewConfig()
+	cg(config)
 
 	cmd := exec.Command(os.Args[2], os.Args[3:]...)
 	cmd.Stdin = os.Stdin
