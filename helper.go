@@ -5,5 +5,5 @@ import (
 )
 
 func isChild() bool {
-	return os.Getpid() == 1
+    return os.Getpid() == 1
 }
