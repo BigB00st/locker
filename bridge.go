@@ -24,8 +24,7 @@ func (b *Bridge) Create(name string, ip net.IP, subnet *net.IPNet) (*net.Interfa
 		LinkAttrs: linkAttrs,
 		MulticastSnooping: newBool(true),
 		HelloTime: newUint32(0),
-		VlanFiltering: newBool(false)
-	}
+		VlanFiltering: newBool(false)}
 
 	if err := netlink.LinkAdd(link); err != nil {
 		return nil, err
