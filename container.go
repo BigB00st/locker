@@ -9,15 +9,15 @@ import (
 
 // Usage: go run main.go run <cmd> <args>
 func main() {
-	switch os.Args[1] {
+	/*switch os.Args[1] {
 	case "run":
 		parent()
 	case "child":
 		child()
 	default:
 		panic("help")
-	}
-
+	}*/
+	runNetwork()
 }
 
 // Parent function, forks and execs child, which runs the requested command

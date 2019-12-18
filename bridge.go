@@ -21,10 +21,7 @@ func (b *Bridge) Create(name string, ip net.IP, subnet *net.IPNet) (*net.Interfa
 
 	linkAttrs := netlink.LinkAttrs{Name: name}
 	link := &netlink.Bridge{
-		LinkAttrs: linkAttrs,
-		MulticastSnooping: newBool(true),
-		HelloTime: newUint32(0),
-		VlanFiltering: newBool(false)}
+		LinkAttrs: linkAttrs}
 
 	if err := netlink.LinkAdd(link); err != nil {
 		return nil, err
