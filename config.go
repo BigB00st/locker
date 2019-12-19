@@ -2,6 +2,8 @@ package main
 
 import (
 	"path"
+	"strconv"
+	"os"
 )
 
 type Config struct {
@@ -12,7 +14,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	config := new(Config)
-	config.name = "test"
+	config.name = "locker" + strconv.Itoa(os.Getpid())
 	config.cgroupCPUPath = path.Join(cgroupPath, cgroupCPU, config.name)
 	config.cgroupMemoryPath = path.Join(cgroupPath, cgroupMemory, config.name)
 	

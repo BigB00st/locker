@@ -8,7 +8,7 @@ import (
 )
 
 //cgroup function, limits recourse usage of process
-func cg(config *Config) {
+func (config *Config) CgInit() {
 	bytesLimit := 10000000
 	swappiness := 0
 
