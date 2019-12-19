@@ -9,22 +9,18 @@ import (
 
 // Usage: go run main.go run <cmd> <args>
 func main() {
-	switch os.Args[1] {
-	case "run":
-		parent()
-	case "child":
+	if isChild() {
 		child()
-	default:
-		panic("help")
+	} else {
+		parent()
 	}
-
 }
 
 // Parent function, forks and execs child, which runs the requested command
 func parent() {
 
-	//fork exec self with "child" as first arg
-	cmd := exec.Command("/proc/self/exe", append([]string{"child"}, os.Args[2:]...)...)
+	//fork exec self
+	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
@@ -44,10 +40,14 @@ func parent() {
 func child() {
 	fmt.Printf("***ENTERED CHILD***\nRunning %v as PID: %d\n", os.Args[2:], os.Getpid())
 
+	//configure cgroups
 	config := NewConfig()
 	config.CgInit()
+	
+	//command to run
+	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 
-	cmd := exec.Command(os.Args[2], os.Args[3:]...)
+	//pipe streams
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
