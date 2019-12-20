@@ -56,11 +56,11 @@ func child() {
 	must(syscall.Chroot(fsPath))
 	os.Setenv("PATH", linuxDefaultPATH)
 	must(os.Chdir("/"))
-	must(syscall.Mount("proc", "proc", "proc", 0, ""))
+	must(syscall.Mount("/proc", "/proc", "proc", 0, ""))
 
 	must(cmd.Run())
 
-	must(syscall.Unmount("proc", 0))
+	must(syscall.Unmount("/proc", 0))
 }
 
 func must(err error) {
