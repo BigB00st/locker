@@ -10,7 +10,7 @@ import (
 
 func AddNetNs(name string) {
 	
-	if NetNsExists(name) {
+	if netNsExists(name) {
 		return
 	}
 
@@ -19,7 +19,7 @@ func AddNetNs(name string) {
 } 
 
 // function return true if namespace exists
-func NetNsExists(name string) bool {
+func netNsExists(name string) bool {
 	cmd := exec.Command("ip", "netns", "list")
 
 	//pipe output
@@ -28,12 +28,12 @@ func NetNsExists(name string) bool {
 
 	cmd.Run()
 	namespaces := strings.Split(output.String(), "\n")
-	return StringInSlice(name, namespaces)
+	return stringInSlice(name, namespaces)
 }
 
-func AddVeth(name, bridgePairName string) {
+func addVeth(name, bridgePairName string) {
 	
-	if VethPairExists(name, bridgePairName) {
+	if vethPairExists(name, bridgePairName) {
 		return
 	}
 
@@ -42,8 +42,8 @@ func AddVeth(name, bridgePairName string) {
 } 
 
 // function return true if Veth pair exists
-func VethPairExists(name, bridgePairName string) bool {
-	cmd := exec.Command("ip", "netns", "list")
+func vethPairExists(name, bridgePairName string) bool {
+	cmd := exec.Command("ip", "link", "list")
 
 	//pipe output
 	var output bytes.Buffer
@@ -58,7 +58,47 @@ func assignVethToNs(vethName, nsName string) {
 	cmd.Run()
 }
 
-func addIpInNs(ip, vethName, nsName string) {
+func addIpInsideNs(ip, vethName, nsName string) {
 	cmd := exec.Command("ip", "netns", "exec", nsName, "ip", "addr", "add", ip, "dev", vethName)
 	cmd.Run()
+}
+
+func setInterfaceUpInsideNs(vethName, nsName string) {
+	cmd := exec.Command("ip", "netns", "exec", nsName, "ip", "link", "set", vethName, "up")
+	must(cmd.Run())
+}
+
+func bridgeExists(name string) bool {
+	cmd := exec.Command("ip", "link", "list", "type", "bridge")
+
+	//pipe output
+	var output bytes.Buffer
+	cmd.Stdout = &output
+
+	cmd.Run()
+	return strings.Contains(output.String(), name)
+}
+
+func createBridge(name string) {
+	if bridgeExists(name) {
+		return
+	}
+
+	cmd := exec.Command("ip","link", "add", "name", name, "type", "bridge")
+	must(cmd.Run())
+}
+
+func setInterfaceUp(name string) {
+	cmd := exec.Command("ip", "link", "set", name, "up")
+	must(cmd.Run())
+}
+
+func addInterfaceToBridge(name, bridgeName string) {
+	cmd := exec.Command("ip", "link", "set", name, "master", bridgeName)
+	must(cmd.Run())
+}
+
+func configureBridgeInterface(name, ip string) {
+	cmd := exec.Command("ip", "addr", "add", ip, "brd", "+", "dev", name)
+	must(cmd.Run())
 }
