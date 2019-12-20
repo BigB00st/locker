@@ -22,7 +22,9 @@ func runNetwork() {
 	var err error = nil
 	
 	bridge := NewBridge();
-	bridgeName := "bridgename";
+	bridgeName := "lockerBridge";
+
+	
 	bridgeIP, bridgeSubnet, err := net.ParseCIDR("10.10.10.1/24");
 	if err != nil {
 		fmt.Println("Error parsing CIDR")
@@ -37,7 +39,7 @@ func runNetwork() {
 	}
 
 	// create veth pair
-	vethNamePrefix := "veth"
+	vethNamePrefix := "lockerVeth"
 	veth := NewVeth()
 	hostVeth, containerVeth, err := veth.Create(vethNamePrefix)
 	if err != nil {
