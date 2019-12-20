@@ -102,3 +102,13 @@ func configureBridgeInterface(name, ip string) {
 	cmd := exec.Command("ip", "addr", "add", ip, "brd", "+", "dev", name)
 	must(cmd.Run())
 }
+
+func setIptablesRules(nsIp string) {
+	cmd := exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", nsIp,"-j", "MASQUERADE")
+	must(cmd.Run())
+}
+
+func enableIpv4Forwarding() {
+	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
+	must(cmd.Run())
+}
