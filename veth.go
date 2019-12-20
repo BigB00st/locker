@@ -43,7 +43,6 @@ func (v *Veth) Create(namePrefix string) (*net.Interface, *net.Interface, error)
 }
 
 func (v *Veth) MoveToNetworkNamespace(containerVeth *net.Interface, pid int) error {
-	fmt.Println("Network namespace name: ", containerVeth.Name)
 	containerVethLink, err := netlink.LinkByName(containerVeth.Name)
 	if err != nil {
 		return err
