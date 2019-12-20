@@ -1,65 +1,64 @@
 package main
 
-// https://github.com/teddyking/netsetgo
 
 import (
-	"fmt"
-	"net"
-	"os"
-	//"github.com/vishvananda/netlink"
+	"os/exec"
+	"bytes"
+	//"fmt"
+	"strings"
 )
-/*
-route := &netlink.Route{
-	Scope:     netlink.SCOPE_UNIVERSE,
-	LinkIndex: link.Attrs().Index,
-	Gw:        netConfig.BridgeIP,
+
+func AddNetNs(name string) {
+	
+	if NetNsExists(name) {
+		return
+	}
+
+	cmd := exec.Command("ip", "netns", "add", name)
+	must(cmd.Run())
+} 
+
+// function return true if namespace exists
+func NetNsExists(name string) bool {
+	cmd := exec.Command("ip", "netns", "list")
+
+	//pipe output
+	var output bytes.Buffer
+	cmd.Stdout = &output
+
+	cmd.Run()
+	namespaces := strings.Split(output.String(), "\n")
+	return StringInSlice(name, namespaces)
 }
 
-return netlink.RouteAdd(route)*/
-
-func runNetwork() {
-
-	var err error = nil
+func AddVeth(name, bridgePairName string) {
 	
-	bridge := NewBridge();
-	bridgeName := "lockerBridge";
-
-	
-	bridgeIP, bridgeSubnet, err := net.ParseCIDR("10.10.10.1/24");
-	if err != nil {
-		fmt.Println("Error parsing CIDR")
-		os.Exit(1)
+	if VethPairExists(name, bridgePairName) {
+		return
 	}
 
-	// create bridge
-	bridgeInterface, err := bridge.Create(bridgeName, bridgeIP, bridgeSubnet)
-	if err != nil {
-		fmt.Println("Error creating bridge")
-		os.Exit(1)
-	}
+	cmd := exec.Command("ip", "netns", "add", name)
+	must(cmd.Run())
+} 
 
-	// create veth pair
-	vethNamePrefix := "lockerVeth"
-	veth := NewVeth()
-	hostVeth, containerVeth, err := veth.Create(vethNamePrefix)
-	if err != nil {
-		fmt.Println("Error creating veth pair")
-		os.Exit(1)
-	}
+// function return true if Veth pair exists
+func VethPairExists(name, bridgePairName string) bool {
+	cmd := exec.Command("ip", "netns", "list")
 
-	// attach bridge to host veth
-	err = bridge.Attach(bridgeInterface, hostVeth)
-	if err != nil {
-		fmt.Println("Error attaching bridge")
-		os.Exit(1)
-	}
+	//pipe output
+	var output bytes.Buffer
+	cmd.Stdout = &output
 
-	// move container veth to new network
-	err = veth.MoveToNetworkNamespace(containerVeth, os.Getpid())
-	if err != nil {
-		fmt.Println("Error moving to network namespace")
-		os.Exit(1)
-	}
+	cmd.Run()
+	return strings.Contains(output.String(), name + "@" + bridgePairName)
+}
 
+func assignVethToNs(vethName, nsName string) {
+	cmd := exec.Command("ip", "link", "set", vethName, "netns", nsName)
+	cmd.Run()
+}
 
+func addIpInNs(ip, vethName, nsName string) {
+	cmd := exec.Command("ip", "netns", "exec", nsName, "ip", "addr", "add", ip, "dev", vethName)
+	cmd.Run()
 }

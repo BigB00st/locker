@@ -9,11 +9,12 @@ import (
 
 // Usage: go run main.go run <cmd> <args>
 func main() {
-	if isChild() {
+	/*if isChild() {
 		child()
 	} else {
 		parent()
-	}
+	}*/
+	AddNetNs("coolns")
 }
 
 // Parent function, forks and execs child, which runs the requested command
@@ -65,6 +66,7 @@ func child() {
 
 func must(err error) {
 	if err != nil {
+		fmt.Println("ERROR:",err)
 		panic(err)
 	}
 }
