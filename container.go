@@ -14,7 +14,7 @@ func main() {
 	} else {
 		parent()
 	}*/
-	AddNetNs("coolns")
+	networkMain()
 }
 
 // Parent function, forks and execs child, which runs the requested command
@@ -66,7 +66,6 @@ func child() {
 
 func must(err error) {
 	if err != nil {
-		fmt.Println("ERROR:",err)
 		panic(err)
 	}
 }
