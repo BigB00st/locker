@@ -12,3 +12,10 @@ const swapinessFile = "memory.swappiness"
 const byteLimitFile = "memory.limit_in_bytes"
 const procsFile = "cgroup.procs"
 const notifyOnReleaseFile = "notify_on_release"
+
+// network related
+const subnetMaskBytes = 4
+const subnetLogicOne = 255
+const bitsInByte = 8
+const ipRouteDefaultIndex = 0
+const ipRouteNameIndex = 4

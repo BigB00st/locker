@@ -9,11 +9,12 @@ import (
 
 // Usage: go run main.go run <cmd> <args>
 func main() {
-	if isChild() {
+	/*if isChild() {
 		child()
 	} else {
 		parent()
-	}
+	}*/
+	networkMain()
 }
 
 // Parent function, forks and execs child, which runs the requested command
