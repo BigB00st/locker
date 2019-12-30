@@ -1,7 +1,8 @@
 package main
 
 import (
-	"os"
+    "os"
+    "strings"
 )
 
 func isChild() bool {
@@ -10,7 +11,7 @@ func isChild() bool {
 
 func stringInSlice(a string, list []string) bool {
     for _, b := range list {
-        if b == a {
+        if strings.Contains(b, a) {
             return true
         }
     }

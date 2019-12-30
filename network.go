@@ -8,71 +8,49 @@ import (
 	"errors"
 	"net"
 	"strconv"
+	"fmt"
 )
 
 func networkMain(){
 	/*localIp, err  := localIP()
 	must(err)*/
 
-	localIp := "192.168.1.0/24"
+	nsName := "lockerNs"
+	vethName := "v-locker"
+	vethPeerName := "v-locker-peer"
+	vethIp := "10.200.1.1"
+	vethCIDR := vethIp + "/24"
+	vethPeerCIDR := "10.200.1.2/24"
+	loopback := "lo"
+	masqueradeIp := "10.200.1.0/255.255.255.0"
+	netInterface := "wlp3s0"
 
-	ns1Name := "namespace1"
-	ns2Name := "namespace2"
-	veth1Name := "veth1"
-	veth2Name := "veth2"
-	brVeth1Name := "br1-veth"
-	brVeth2Name := "br2-veth"
-	veth1CIDR := "192.168.1.11/24"
-	veth2CIDR := "192.168.1.12/24"
-	bridgeName := "br1"
-	bridgeIp := "192.168.1.10"
-	bridgeCIDR := bridgeIp + "/24"
+	// create network namespace
+	AddNetNs(nsName)
 
-	// create network namespaces
-	AddNetNs(ns1Name)
-	AddNetNs(ns2Name)
+	// create veth pair
+	addVethPair(vethName, vethPeerName)
 
-	// create veth pairs
-	addVethPair(veth1Name, brVeth1Name)
-	addVethPair(veth2Name, brVeth2Name)
+	// assign peer to namespace
+	assignVethToNs(vethPeerName, nsName)
 
-	// assign veths to namespaces
-	assignVethToNs(veth1Name, ns1Name)
-	assignVethToNs(veth2Name, ns2Name)
+	// setup ipv4 of veth
+	addIp(vethCIDR, vethName)
+	setInterfaceUp(vethName)
 
-	// add ip to veths inside namespace
-	addIpInsideNs(veth1CIDR, veth1Name, ns1Name)
-	addIpInsideNs(veth2CIDR, veth2Name, ns2Name)
-	
-	// create bridge and set it up
-	createBridge(bridgeName)
-	setInterfaceUp(bridgeName)
+	// setup ipv4 of veth peer
+	addIpInsideNs(vethPeerCIDR, vethPeerName, nsName)
+	setInterfaceUpInsideNs(vethPeerName, nsName)
+	setInterfaceUpInsideNs(loopback, nsName)
 
-	// set bridge veths up
-	setInterfaceUp(brVeth1Name)
-	setInterfaceUp(brVeth2Name)
-
-	// set veths up inside namespace
-	setInterfaceUpInsideNs(veth1Name, ns1Name)
-	setInterfaceUpInsideNs(veth2Name, ns2Name)
-
-	// add bridge veths to bridge
-	addInterfaceToBridge(brVeth1Name, bridgeName)
-	addInterfaceToBridge(brVeth2Name, bridgeName)
-	
-	// add bridge ip
-	addBridgeIp(bridgeName, bridgeCIDR)
-
-	// add default gateway in namespaces
-	addDefaultGateway(ns1Name, bridgeIp)
-	addDefaultGateway(ns2Name, bridgeIp)
-
-	// set rules to allow connectivity
-	setIptablesRules(localIp)
+	// add default gateway inside namespace
+	addDefaultGateway(nsName, vethIp)
 
 	// enable ipv4 forwarding
 	enableIpv4Forwarding()
-
+	
+	// set rules to allow connectivity
+	setIptablesRules(masqueradeIp, netInterface, vethName)
 }
 
 func AddNetNs(nsName string) {
@@ -98,18 +76,18 @@ func netNsExists(nsName string) bool {
 	return stringInSlice(nsName, namespaces)
 }
 
-func addVethPair(vethName, bridgePairName string) {
+func addVethPair(vethName, vethPeerName string) {
 	
-	if vethPairExists(vethName, bridgePairName) {
+	if netInterfaceExists(vethName) {
 		return
 	}
 
-	cmd := exec.Command("ip", "link", "add", vethName, "type", "veth", "peer", "name", bridgePairName)
+	cmd := exec.Command("ip", "link", "add", vethName, "type", "veth", "peer", "name", vethPeerName)
 	must(cmd.Run())
 } 
 
 // function return true if Veth pair exists
-func vethPairExists(vethName, bridgePairName string) bool {
+func netInterfaceExists(vethName string) bool {
 	cmd := exec.Command("ip", "link", "list")
 
 	//pipe output
@@ -117,7 +95,7 @@ func vethPairExists(vethName, bridgePairName string) bool {
 	cmd.Stdout = &output
 
 	cmd.Run()
-	return strings.Contains(output.String(), vethName + "@" + bridgePairName)
+	return strings.Contains(output.String(), vethName + "@")
 }
 
 func assignVethToNs(vethName, nsName string) {
@@ -125,9 +103,14 @@ func assignVethToNs(vethName, nsName string) {
 	cmd.Run()
 }
 
-func addIpInsideNs(CIDR, vethName, nsName string) {
-	cmd := exec.Command("ip", "netns", "exec", nsName, "ip", "addr", "add", CIDR, "dev", vethName)
-	cmd.Run()
+func addIp(Ip, vethName string) {
+	cmd := exec.Command("ip", "addr", "add", Ip, "dev", vethName)
+	cmd.Run() //if fails, ip already exists
+}
+
+func addIpInsideNs(Ip, vethName, nsName string) {
+	cmd := exec.Command("ip", "netns", "exec", nsName, "ip", "addr", "add", Ip, "dev", vethName)
+	cmd.Run() //if fails, ip already exists
 }
 
 func setInterfaceUpInsideNs(vethName, nsName string) {
@@ -151,7 +134,7 @@ func createBridge(bridgeName string) {
 		return
 	}
 
-	cmd := exec.Command("ip","link", "add", "name", bridgeName, "type", "bridge")
+	cmd := exec.Command("ip", "link", "add", "name", bridgeName, "type", "bridge")
 	must(cmd.Run())
 }
 
@@ -165,23 +148,48 @@ func addInterfaceToBridge(interfaceName, bridgeName string) {
 	must(cmd.Run())
 }
 
-func addBridgeIp(bridgeName, CIDR string) {
-	cmd := exec.Command("ip", "addr", "add", CIDR, "brd", "+", "dev", bridgeName)
+func addBridgeIp(bridgeName, Ip string) {
+	cmd := exec.Command("ip", "addr", "add", Ip, "brd", "+", "dev", bridgeName)
 	must(cmd.Run())
 }
 
-func addDefaultGateway(nsName, bridgeIp string) {
-	cmd := exec.Command("ip", "netns", "exec", nsName, "ip", "route", "add", "default", "via", bridgeIp)
-	must(cmd.Run())
+func addDefaultGateway(nsName, Ip string) {
+	cmd := exec.Command("ip", "netns", "exec", nsName, "ip", "route", "add", "default", "via", Ip)
+	cmd.Run() // if fails, route already exists
 }
 
-func setIptablesRules(localCIDR string) {
-	cmd := exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", localCIDR ,"-j", "MASQUERADE")
+func setIptablesRules(masqueradeIp, netInterface, vethName string) {
+	// Flush forward rules, policy DROP by default.
+	cmd := exec.Command("iptables", "-P", "FORWARD", "DROP")
 	must(cmd.Run())
+	fmt.Println(1)
+	cmd = exec.Command("iptables", "-F", "FORWARD")
+	must(cmd.Run())
+	fmt.Println(2)
+
+	// Flush nat rules.
+	cmd = exec.Command("iptables", "-t", "nat", "-F")
+	must(cmd.Run())
+	fmt.Println(3)
+
+	// allow masquerading
+	cmd = exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING" ,"-s", masqueradeIp, "-o", netInterface, "-j" ,"MASQUERADE")
+	must(cmd.Run())
+	fmt.Println(4)
+
+	// Allow forwarding between net interface and veth interface
+	cmd = exec.Command("iptables", "-A", "FORWARD", "-i", netInterface, "-o", vethName, "-j", "ACCEPT")
+	must(cmd.Run())
+	fmt.Println(5)
+	cmd = exec.Command("iptables", "-A", "FORWARD", "-o", netInterface, "-i", vethName, "-j" , "ACCEPT")
+	must(cmd.Run())
+	fmt.Println(6)
+	
+	
 }
 
 func enableIpv4Forwarding() {
-	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
+	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=0")
 	must(cmd.Run())
 }
 
@@ -222,14 +230,14 @@ func localIP() (string, error) {
 			if ip == nil {
 				continue // not an ipv4 address
 			}
-			return ip.String()+"/"+getCIDR(mask), nil
+			return ip.String()+"/"+getIp(mask), nil
 		}
 	}
 	return "", errors.New("are you connected to the network?")
 }
 
-// returns CIDR given subnet mask
-func getCIDR(mask net.IPMask) string {
+// returns Ip given subnet mask
+func getIp(mask net.IPMask) string {
 	bits := 0
 	for i := 0; i < subnetMaskBytes; i++ {
 		if mask[i] == subnetLogicOne {
