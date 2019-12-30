@@ -22,7 +22,7 @@ func networkMain(){
 	vethPeerCIDR := "10.200.1.2/24"
 	loopback := "lo"
 	masqueradeIp := "10.200.1.0/255.255.255.0"
-	netInterface := "wlp3s0"
+	netInterface := connectedInterfaceName()
 
 	// create network namespace
 	AddNetNs(nsName)
@@ -182,6 +182,23 @@ func setIptablesRules(masqueradeIp, netInterface, vethName string) {
 func enableIpv4Forwarding() {
 	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
 	must(cmd.Run())
+}
+
+func connectedInterfaceName() string {
+	cmd := exec.Command("ip", "-4", "route", "ls")
+
+	//pipe output
+	var output bytes.Buffer
+	cmd.Stdout = &output
+	
+	must(cmd.Run())
+	for _, line := range strings.Split(output.String(), "\n") {
+		words := strings.Split(line, " ")
+		if words[ipRouteDefaultIndex] == "default" {
+			return words[ipRouteNameIndex]
+		}
+	}
+	panic("Not connected to internet")
 }
 
 
