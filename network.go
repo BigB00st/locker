@@ -8,7 +8,6 @@ import (
 	"errors"
 	"net"
 	"strconv"
-	"fmt"
 )
 
 func networkMain(){
@@ -162,34 +161,26 @@ func setIptablesRules(masqueradeIp, netInterface, vethName string) {
 	// Flush forward rules, policy DROP by default.
 	cmd := exec.Command("iptables", "-P", "FORWARD", "DROP")
 	must(cmd.Run())
-	fmt.Println(1)
 	cmd = exec.Command("iptables", "-F", "FORWARD")
 	must(cmd.Run())
-	fmt.Println(2)
 
 	// Flush nat rules.
 	cmd = exec.Command("iptables", "-t", "nat", "-F")
 	must(cmd.Run())
-	fmt.Println(3)
 
 	// allow masquerading
 	cmd = exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING" ,"-s", masqueradeIp, "-o", netInterface, "-j" ,"MASQUERADE")
 	must(cmd.Run())
-	fmt.Println(4)
 
 	// Allow forwarding between net interface and veth interface
 	cmd = exec.Command("iptables", "-A", "FORWARD", "-i", netInterface, "-o", vethName, "-j", "ACCEPT")
 	must(cmd.Run())
-	fmt.Println(5)
 	cmd = exec.Command("iptables", "-A", "FORWARD", "-o", netInterface, "-i", vethName, "-j" , "ACCEPT")
 	must(cmd.Run())
-	fmt.Println(6)
-	
-	
 }
 
 func enableIpv4Forwarding() {
-	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=0")
+	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
 	must(cmd.Run())
 }
 
