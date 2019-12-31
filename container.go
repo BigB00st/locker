@@ -9,12 +9,12 @@ import (
 
 // Usage: go run main.go run <cmd> <args>
 func main() {
-	/*if isChild() {
+	if isChild() {
 		child()
 	} else {
 		parent()
-	}*/
-	networkMain()
+	}
+	//networkMain()
 }
 
 // Parent function, forks and execs child, which runs the requested command
@@ -34,16 +34,19 @@ func parent() {
 		Unshareflags: syscall.CLONE_NEWNS,
 	}
 
-	must(cmd.Run())
+	must(cmd.Start())
+	fmt.Println("Child PID:", cmd.Process.Pid)
+
+	//configure cgroups
+	config := NewConfig(cmd.Process.Pid)
+	config.CgInit()
+	cmd.Wait()
+	config.CgDestruct()
 }
 
 // Child process, runs requested command
 func child() {
-	fmt.Printf("***ENTERED CHILD***\nRunning %v as PID: %d\n", os.Args[2:], os.Getpid())
-
-	//configure cgroups
-	config := NewConfig()
-	config.CgInit()
+	fmt.Printf("***ENTERED CHILD***\nRunning %v\n", os.Args[2:])
 	
 	//command to run
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
