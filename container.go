@@ -40,8 +40,9 @@ func parent() {
 	//configure cgroups
 	config := NewConfig(cmd.Process.Pid)
 	config.CgInit()
+	defer config.CgDestruct()
+
 	cmd.Wait()
-	config.CgDestruct()
 }
 
 // Child process, runs requested command
@@ -60,11 +61,12 @@ func child() {
 	must(syscall.Chroot(fsPath))
 	os.Setenv("PATH", linuxDefaultPATH)
 	must(os.Chdir("/"))
+
+	// mount proc for ps/top
 	must(syscall.Mount("/proc", "/proc", "proc", 0, ""))
+	defer must(syscall.Unmount("/proc", 0))
 
 	must(cmd.Run())
-
-	must(syscall.Unmount("/proc", 0))
 }
 
 func must(err error) {
