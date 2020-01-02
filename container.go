@@ -46,8 +46,8 @@ func parent() {
 
 // Child process, runs requested command
 func child() {
-	fmt.Printf("***ENTERED CHILD***\nRunning %v\n", os.Args[2:])
-	
+	fmt.Printf("***ENTERED CHILD***\nRunning %v\n", os.Args[1:])
+
 	//command to run
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 
