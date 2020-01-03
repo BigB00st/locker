@@ -24,8 +24,8 @@ func (config *Config) CgInit() {
 	must(ioutil.WriteFile(path.Join(config.cgroupMemoryPath, swapinessFile), []byte(strconv.Itoa(swappiness)), 0700))
 
 	//limit amount of CPUs allowes
-	mems, readErr := ioutil.ReadFile(path.Join(config.cgroupCPUSetRootPath, cpusetMemFile))
-	must(readErr)
+	mems, err := ioutil.ReadFile(path.Join(config.cgroupCPUSetRootPath, cpusetMemFile))
+	must(err)
 	must(ioutil.WriteFile(path.Join(config.cgroupCPUSetPath, cpusetMemFile), mems, 0700))
 	must(ioutil.WriteFile(path.Join(config.cgroupCPUSetPath, cpusetLimitFile), []byte(cpusAllowed), 0700))
 
