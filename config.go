@@ -3,23 +3,24 @@ package main
 import (
 	"path"
 	"strconv"
+	"os"
 )
 
 type Config struct {
 	name string
-	pid int
 	cgroupMemoryPath string
+	cgroupMemoryRootPath string
 	cgroupCPUSetPath string
 	cgroupCPUSetRootPath string
 }
 
-func NewConfig(pid int) *Config {
+func NewConfig() *Config {
 	config := new(Config)
-	config.pid = pid
-	config.name = "locker" + strconv.Itoa(pid)
+	config.name = "locker" + strconv.Itoa(os.Getpid())
 	config.cgroupCPUSetPath = path.Join(cgroupPath, cgroupCPUSet, config.name)
 	config.cgroupCPUSetRootPath = path.Join(cgroupPath, cgroupCPUSet)
 	config.cgroupMemoryPath = path.Join(cgroupPath, cgroupMemory, config.name)
+	config.cgroupMemoryRootPath = path.Join(cgroupPath, cgroupMemory)
 
 	return config
 }

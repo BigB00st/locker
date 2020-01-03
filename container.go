@@ -34,13 +34,15 @@ func parent() {
 		Unshareflags: syscall.CLONE_NEWNS,
 	}
 
+	//configure cgroups
+	config := NewConfig()
+	config.CgInit()
+	defer config.CgDestruct()
+
 	must(cmd.Start())
 	fmt.Println("Child PID:", cmd.Process.Pid)
 
-	//configure cgroups
-	config := NewConfig(cmd.Process.Pid)
-	config.CgInit()
-	defer config.CgDestruct()
+	config.CgRemoveSelf()
 
 	cmd.Wait()
 }

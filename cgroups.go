@@ -29,15 +29,24 @@ func (config *Config) CgInit() {
 	must(ioutil.WriteFile(path.Join(config.cgroupCPUSetPath, cpusetMemFile), mems, 0700))
 	must(ioutil.WriteFile(path.Join(config.cgroupCPUSetPath, cpusetLimitFile), []byte(cpusAllowed), 0700))
 
-	//assign PID to memory cgroup
-	must(ioutil.WriteFile(path.Join(config.cgroupMemoryPath, procsFile), []byte(strconv.Itoa(config.pid)), 0700))
+	//assign self to memory cgroup
 
-	//assign PID to cpuset cgroup
-	must(ioutil.WriteFile(path.Join(config.cgroupCPUSetPath, procsFile), []byte(strconv.Itoa(config.pid)), 0700))
+	must(ioutil.WriteFile(path.Join(config.cgroupMemoryPath, procsFile), []byte("0"), 0700))
+
+	//assign self to cpuset cgroup
+	must(ioutil.WriteFile(path.Join(config.cgroupCPUSetPath, procsFile), []byte("0"), 0700))
 
 	//cleanup after container exists
 	must(ioutil.WriteFile(path.Join(config.cgroupMemoryPath, notifyOnReleaseFile), []byte("1"), 0700))
 	must(ioutil.WriteFile(path.Join(config.cgroupCPUSetPath, notifyOnReleaseFile), []byte("1"), 0700))
+}
+
+func (config *Config) CgRemoveSelf() {
+	//assign self to root memory cgroup
+	must(ioutil.WriteFile(path.Join(config.cgroupMemoryRootPath, procsFile), []byte("0"), 0700))
+
+	//assign self to root cpuset cgroup
+	must(ioutil.WriteFile(path.Join(config.cgroupCPUSetRootPath, procsFile), []byte("0"), 0700))
 }
 
 //cgroup function, limits recourse usage of process
