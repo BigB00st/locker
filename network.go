@@ -28,9 +28,6 @@ var SYS_SETNS = map[string]uintptr{
 }[runtime.GOARCH]
 
 func createNetConnectivity(){
-	/*localIp, err  := localIP()
-	must(err)*/
-
 	nsName := "lockerNs"
 	vethName := "v-locker"
 	vethPeerName := "v-locker-peer"

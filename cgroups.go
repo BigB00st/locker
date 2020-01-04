@@ -8,7 +8,7 @@ import (
 )
 
 //cgroup function, limits recourse usage of process
-func (config *Config) CgInit() {
+func CgInit(config *Config) {
 	bytesLimit := 10000000
 	swappiness := 0
 
@@ -28,6 +28,6 @@ func (config *Config) CgInit() {
 }
 
 //cgroup function, limits recourse usage of process
-func (config *Config) CgDestruct() {
+func CgDestruct(config *Config) {
 	must(os.Remove(config.cgroupMemoryPath))
 }

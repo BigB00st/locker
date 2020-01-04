@@ -7,8 +7,13 @@ import (
 	"syscall"
 )
 
-// Usage: go run main.go run <cmd> <args>
+// Usage: ./locker command args...
 func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("USAGE: command args...")
+		os.Exit(1)
+	}
+
 	if isChild() {
 		child()
 	} else {
@@ -40,14 +45,14 @@ func parent() {
 
 	//configure cgroups
 	config := NewConfig(cmd.Process.Pid)
-	config.CgInit()
+	CgInit(config)
 	cmd.Wait()
-	config.CgDestruct()
+	CgDestruct(config)
 }
 
 // Child process, runs requested command
 func child() {
-	fmt.Printf("***ENTERED CHILD***\nRunning %v\n", os.Args[2:])
+	fmt.Printf("Running: %v\n", os.Args[1:])
 	
 	//command to run
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
