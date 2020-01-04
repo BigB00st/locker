@@ -19,3 +19,4 @@ const subnetLogicOne = 255
 const bitsInByte = 8
 const ipRouteDefaultIndex = 0
 const ipRouteNameIndex = 4
+const netnsDirectory = "/var/run/netns/"

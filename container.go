@@ -14,7 +14,6 @@ func main() {
 	} else {
 		parent()
 	}
-	//networkMain()
 }
 
 // Parent function, forks and execs child, which runs the requested command
@@ -33,6 +32,8 @@ func parent() {
 		Cloneflags:   syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS,
 		Unshareflags: syscall.CLONE_NEWNS,
 	}
+
+	createNetConnectivity()
 
 	must(cmd.Start())
 	fmt.Println("Child PID:", cmd.Process.Pid)
@@ -62,7 +63,7 @@ func child() {
 	must(os.Chdir("/"))
 	must(syscall.Mount("/proc", "/proc", "proc", 0, ""))
 
-	must(cmd.Run())
+	cmd.Run()
 
 	must(syscall.Unmount("/proc", 0))
 }
