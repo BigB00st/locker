@@ -8,7 +8,7 @@ import (
 )
 
 //cgroup function, limits recourse usage of process
-func (config *Config) CgInit() {
+func CgInit(config *Config) {
 	bytesLimit := 10000000
 	swappiness := 0
 	cpusAllowed := "0" //Only allow the first cpu
@@ -50,7 +50,7 @@ func CgRemoveSelf(config *Config) {
 }
 
 //cgroup function, limits recourse usage of process
-func (config *Config) CgDestruct() {
+func CgDestruct(config *Config) {
 	must(os.Remove(config.cgroupMemoryPath))
 	must(os.Remove(config.cgroupCPUSetPath))
 }

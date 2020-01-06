@@ -8,12 +8,26 @@ import (
 	"errors"
 	"net"
 	"strconv"
+	"syscall"
+	"runtime"
 )
 
-func networkMain(){
-	/*localIp, err  := localIP()
-	must(err)*/
+// SYS_SETNS syscall allows changing the namespace of the current process.
+var SYS_SETNS = map[string]uintptr{
+	"386":     346,
+	"amd64":   308,
+	"arm64":   268,
+	"arm":     375,
+	"mips":    4344,
+	"mipsle":  4344,
+	"mips64le":  4344,
+	"ppc64":   350,
+	"ppc64le": 350,
+	"riscv64": 268,
+	"s390x":   339,
+}[runtime.GOARCH]
 
+func createNetConnectivity(){
 	nsName := "lockerNs"
 	vethName := "v-locker"
 	vethPeerName := "v-locker-peer"
@@ -50,6 +64,22 @@ func networkMain(){
 	
 	// set rules to allow connectivity
 	setIptablesRules(masqueradeIp, netInterface, vethName)
+
+	joinNsByName(nsName)
+}
+
+func joinNsByName(nsName string){
+	nsHandle, err := getFdFromPath(netnsDirectory+nsName)
+	must(err)
+	must(setNs(nsHandle, syscall.CLONE_NEWNET))
+}
+
+func setNs(nsHandle int, nsType int) (err error) {
+	_, _, e1 := syscall.Syscall(SYS_SETNS, uintptr(nsHandle), uintptr(nsType), 0)
+	if e1 != 0 {
+		err = e1
+	}
+	return
 }
 
 func AddNetNs(nsName string) {

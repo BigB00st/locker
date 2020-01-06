@@ -7,14 +7,18 @@ import (
 	"syscall"
 )
 
-// Usage: go run main.go run <cmd> <args>
+// Usage: ./locker command args...
 func main() {
+	if len(os.Args) < 2 {
+		fmt.Println("USAGE: command args...")
+		os.Exit(1)
+	}
+
 	if isChild() {
 		child()
 	} else {
 		parent()
 	}
-	//networkMain()
 }
 
 // Parent function, forks and execs child, which runs the requested command
@@ -36,21 +40,23 @@ func parent() {
 
 	//configure cgroups
 	config := NewConfig()
-	config.CgInit()
-	defer config.CgDestruct()
+	CgInit(config)
+	defer CgDestruct(config)
+	CgRemoveSelf(config)
+
+	createNetConnectivity()
 
 	must(cmd.Start())
 	fmt.Println("Child PID:", cmd.Process.Pid)
 
-	CgRemoveSelf(config)
 
 	cmd.Wait()
 }
 
 // Child process, runs requested command
 func child() {
-	fmt.Printf("***ENTERED CHILD***\nRunning %v\n", os.Args[1:])
-
+	fmt.Printf("Running: %v\n", os.Args[1:])
+	
 	//command to run
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 
@@ -67,7 +73,7 @@ func child() {
 	// mount proc for pids
 	must(syscall.Mount("/proc", "/proc", "proc", 0, ""))
 
-	must(cmd.Run())
+	cmd.Run()
 
 	must(syscall.Unmount("/proc", 0))
 }
