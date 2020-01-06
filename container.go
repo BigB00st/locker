@@ -42,7 +42,7 @@ func parent() {
 	must(cmd.Start())
 	fmt.Println("Child PID:", cmd.Process.Pid)
 
-	config.CgRemoveSelf()
+	CgRemoveSelf(config)
 
 	cmd.Wait()
 }

@@ -41,7 +41,7 @@ func (config *Config) CgInit() {
 	must(ioutil.WriteFile(path.Join(config.cgroupCPUSetPath, notifyOnReleaseFile), []byte("1"), 0700))
 }
 
-func (config *Config) CgRemoveSelf() {
+func CgRemoveSelf(config *Config) {
 	//assign self to root memory cgroup
 	must(ioutil.WriteFile(path.Join(config.cgroupMemoryRootPath, procsFile), []byte("0"), 0700))
 
