@@ -38,16 +38,19 @@ func parent() {
 		Unshareflags: syscall.CLONE_NEWNS,
 	}
 
+	//configure cgroups
+	config := NewConfig()
+	CgInit(config)
+	defer CgDestruct(config)
+	CgRemoveSelf(config)
+
 	createNetConnectivity()
 
 	must(cmd.Start())
 	fmt.Println("Child PID:", cmd.Process.Pid)
 
-	//configure cgroups
-	config := NewConfig(cmd.Process.Pid)
-	CgInit(config)
+
 	cmd.Wait()
-	CgDestruct(config)
 }
 
 // Child process, runs requested command
@@ -66,6 +69,8 @@ func child() {
 	must(syscall.Chroot(fsPath))
 	os.Setenv("PATH", linuxDefaultPATH)
 	must(os.Chdir("/"))
+
+	// mount proc for pids
 	must(syscall.Mount("/proc", "/proc", "proc", 0, ""))
 
 	cmd.Run()

@@ -7,9 +7,11 @@ const linuxDefaultPATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbi
 //cgroup related
 const cgroupPath = "/sys/fs/cgroup/"
 const cgroupMemory = "memory"
-const cgroupCPU = "cpu"
+const cgroupCPUSet = "cpuset" //Need to decide if we also want cpu control
 const swapinessFile = "memory.swappiness"
 const byteLimitFile = "memory.limit_in_bytes"
+const cpusetLimitFile = "cpuset.cpus"
+const cpusetMemFile = "cpuset.mems"
 const procsFile = "cgroup.procs"
 const notifyOnReleaseFile = "notify_on_release"
 
