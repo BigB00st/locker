@@ -42,13 +42,14 @@ func parent() {
 	config := NewConfig()
 	CgInit(config)
 	defer CgDestruct(config)
-	CgRemoveSelf(config)
+
 
 	createNetConnectivity()
 
 	must(cmd.Start())
+	
 	fmt.Println("Child PID:", cmd.Process.Pid)
-
+	CgRemoveSelf(config)
 
 	cmd.Wait()
 }
@@ -59,6 +60,8 @@ func child() {
 	
 	//command to run
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
+
+	//syscallsWhitelist := readSeccompProfile("seccomp_default.json")
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
@@ -73,7 +76,10 @@ func child() {
 	// mount proc for pids
 	must(syscall.Mount("/proc", "/proc", "proc", 0, ""))
 
-	cmd.Run()
+	//scmpFilter := createScmpFilter(syscallsWhitelist)
+
+	must(cmd.Run())
+	//resetScmpFilter(scmpFilter)
 
 	must(syscall.Unmount("/proc", 0))
 }
