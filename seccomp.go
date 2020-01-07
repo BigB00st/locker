@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"syscall"
 	libseccomp "github.com/seccomp/libseccomp-golang"
+	
 )
 
 func readSeccompProfile(path string) []string {
@@ -19,17 +20,24 @@ func readSeccompProfile(path string) []string {
 	return result["syscalls"]
 }
 
-func seccompWhitelist(syscalls []string) {
+func createScmpFilter(syscalls []string) *libseccomp.ScmpFilter {
 	// blacklist everything (EPERM - Permission not permitted)
-	filter, err := libseccomp.NewFilter(libseccomp.ActErrno.SetReturnCode(int16(syscall.EPERM)))
+	scmpFilter, err := libseccomp.NewFilter(libseccomp.ActErrno.SetReturnCode(int16(syscall.EPERM)))
 	must(err)
 	
 	// whitelist given syscalls 
-    for _, element := range syscalls {
-        syscallID, _ := libseccomp.GetSyscallFromName(element)
-
-        filter.AddRule(syscallID, libseccomp.ActAllow)
+    for _, syscall := range syscalls {
+        syscallID, err := libseccomp.GetSyscallFromName(syscall)
+		if err == nil {
+			must(scmpFilter.AddRule(syscallID, libseccomp.ActTrace))
+		}
 	}
-	// load seccomp filter
-    filter.Load()
+	
+	must(scmpFilter.Load())
+	return scmpFilter
+}
+
+func resetScmpFilter(scmpFilter *libseccomp.ScmpFilter) {
+	must(scmpFilter.Reset(libseccomp.ActTrace))
+	must(scmpFilter.Load())
 }
