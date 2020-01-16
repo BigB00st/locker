@@ -7,28 +7,25 @@ import (
 	"syscall"
 )
 
-const fsPath = "/home/amit/Documents/container-test/test"
-const linuxDefaultPATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-
-
-// Usage: go run main.go run <cmd> <args>
+// Usage: ./locker command args...
 func main() {
-	fmt.Println("***ENTERED MAIN***")
-	switch os.Args[1] {
-	case "run":
-		parent()
-	case "child":
+	if len(os.Args) < 2 {
+		fmt.Println("USAGE: command args...")
+		os.Exit(1)
+	}
+
+	if isChild() {
 		child()
-	default:
-		panic("help")
+	} else {
+		parent()
 	}
 }
 
 // Parent function, forks and execs child, which runs the requested command
 func parent() {
 
-	//fork exec self with "child" as first arg
-	cmd := exec.Command("/proc/self/exe", append([]string{"child"}, os.Args[2:]...)...)
+	//fork exec self
+	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
@@ -41,14 +38,29 @@ func parent() {
 		Unshareflags: syscall.CLONE_NEWNS,
 	}
 
-	must(cmd.Run())
+	//configure cgroups
+	config := NewConfig()
+	CgInit(config)
+	defer CgDestruct(config)
+	CgRemoveSelf(config)
+
+	createNetConnectivity()
+
+	must(cmd.Start())
+	fmt.Println("Child PID:", cmd.Process.Pid)
+
+
+	cmd.Wait()
 }
 
 // Child process, runs requested command
 func child() {
-	fmt.Printf("***ENTERED CHILD*** Running %v as PID: %d\n", os.Args[2:], os.Getpid())
+	fmt.Printf("Running: %v\n", os.Args[1:])
+	
+	//command to run
+	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 
-	cmd := exec.Command(os.Args[2], os.Args[3:]...)
+	//pipe streams
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -57,7 +69,13 @@ func child() {
 	must(syscall.Chroot(fsPath))
 	os.Setenv("PATH", linuxDefaultPATH)
 	must(os.Chdir("/"))
-	must(cmd.Run())
+
+	// mount proc for pids
+	must(syscall.Mount("/proc", "/proc", "proc", 0, ""))
+
+	cmd.Run()
+
+	must(syscall.Unmount("/proc", 0))
 }
 
 func must(err error) {
