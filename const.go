@@ -22,3 +22,6 @@ const bitsInByte = 8
 const ipRouteDefaultIndex = 0
 const ipRouteNameIndex = 4
 const netnsDirectory = "/var/run/netns/"
+
+// seccomp related
+const defaultSeccompProfilePath = "seccomp_default.json"

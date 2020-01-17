@@ -311,6 +311,10 @@
 		"waitid",
 		"waitpid",
 		"write",
-		"writev"
+		"writev",
+
+		"clone",
+		"arch_prctl",
+		"modify_ldt"
 	]
 }

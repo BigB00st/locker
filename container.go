@@ -61,7 +61,7 @@ func child() {
 	//command to run
 	cmd := exec.Command(os.Args[1], os.Args[2:]...)
 
-	//syscallsWhitelist := readSeccompProfile("seccomp_default.json")
+	syscallsWhitelist := readSeccompProfile(defaultSeccompProfilePath)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
@@ -71,17 +71,13 @@ func child() {
 	must(syscall.Sethostname([]byte("locker")))
 	must(syscall.Chroot(fsPath))
 	os.Setenv("PATH", linuxDefaultPATH)
-	must(os.Chdir("/"))
+	must(os.Chdir("/root"))
 
 	// mount proc for pids
-	must(syscall.Mount("/proc", "/proc", "proc", 0, ""))
-
-	//scmpFilter := createScmpFilter(syscallsWhitelist)
-
-	must(cmd.Run())
-	//resetScmpFilter(scmpFilter)
-
-	must(syscall.Unmount("/proc", 0))
+	must(syscall.Mount("proc", "/proc", "proc", 0, ""))
+	scmpFilter := createScmpFilter(syscallsWhitelist)
+	defer scmpFilter.Release()
+	cmd.Run()
 }
 
 func must(err error) {
