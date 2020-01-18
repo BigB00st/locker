@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"syscall"
 	"runtime"
+	"path/filepath"
 )
 
 // SYS_SETNS syscall allows changing the namespace of the current process.
@@ -28,9 +29,6 @@ var SYS_SETNS = map[string]uintptr{
 }[runtime.GOARCH]
 
 func createNetConnectivity(){
-	/*localIp, err  := localIP()
-	must(err)*/
-
 	nsName := "lockerNs"
 	vethName := "v-locker"
 	vethPeerName := "v-locker-peer"
@@ -97,15 +95,7 @@ func AddNetNs(nsName string) {
 
 // function return true if namespace exists
 func netNsExists(nsName string) bool {
-	cmd := exec.Command("ip", "netns", "list")
-
-	//pipe output
-	var output bytes.Buffer
-	cmd.Stdout = &output
-
-	cmd.Run()
-	namespaces := strings.Split(output.String(), "\n")
-	return stringInSlice(nsName, namespaces)
+	return fileExists(filepath.Join(netnsDirectory, nsName))
 }
 
 func addVethPair(vethName, vethPeerName string) {
