@@ -5,12 +5,14 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+	"github.com/spf13/pflag"
 )
 
 // Usage: ./locker command args...
 func main() {
 	ReadConfig()
-	if len(os.Args) < 2 {
+	parseArgs()
+	if len(pflag.Args()) < 1 {
 		fmt.Println("USAGE: command args...")
 		os.Exit(1)
 	}
@@ -26,7 +28,7 @@ func main() {
 func parent() {
 
 	//fork exec self
-	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
+	cmd := exec.Command("/proc/self/exe", pflag.Args()[0:]...)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
@@ -56,10 +58,11 @@ func parent() {
 
 // Child process, runs requested command
 func child() {
-	fmt.Printf("Running: %v\n", os.Args[1:])
+	nonFlagArgs := pflag.Args()
+	fmt.Printf("Running: %v\n", nonFlagArgs[0:])
 	
 	//command to run
-	cmd := exec.Command(os.Args[1], os.Args[2:]...)
+	cmd := exec.Command(nonFlagArgs[0], nonFlagArgs[1:]...)
 
 	syscallsWhitelist := readSeccompProfile(defaultSeccompProfilePath)
 
