@@ -1,0 +1,13 @@
+name = "LockerName"
+
+[cgroups]
+cpus-allowed = "0-3"
+memory-limit = 10000000
+memory-swappiness = 0
+
+[network]
+network = "forwarding"
+
+[security]
+#seccomp
+#apparmor
