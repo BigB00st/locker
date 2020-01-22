@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+	"github.com/spf13/viper"
 	"github.com/spf13/pflag"
 )
 
@@ -71,9 +72,9 @@ func child() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	must(syscall.Sethostname([]byte("locker")))
+	must(syscall.Sethostname([]byte(viper.GetString("name"))))
 	must(syscall.Chroot(fsPath))
-	os.Setenv("PATH", linuxDefaultPATH)
+	os.Setenv("PATH", viper.GetString("path"))
 	must(os.Chdir("/root"))
 
 	// mount proc for pids
