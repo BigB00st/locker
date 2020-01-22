@@ -5,14 +5,15 @@ import (
 	"io/ioutil"
 	"strconv"
 	"path"
+	"github.com/spf13/viper"
 )
 
 //cgroup function, limits recourse usage of process
 func CgInit(config *Config) {
-	bytesLimit := 10000000
-	swappiness := 0
-	cpusAllowed := "0" //Only allow the first cpu
-
+	cpusAllowed := viper.GetString("cgroups.cpus-allowed")
+	bytesLimit := viper.GetInt("cgroups.memory-limit")
+	swappiness := viper.GetInt("cgroups.memory-swapiness")
+	
 	//make cgruops
 	os.Mkdir(config.cgroupMemoryPath, 0755)
 	os.Mkdir(config.cgroupCPUSetPath, 0755)
