@@ -9,6 +9,7 @@ import (
 
 // Usage: ./locker command args...
 func main() {
+	ReadConfig()
 	if len(os.Args) < 2 {
 		fmt.Println("USAGE: command args...")
 		os.Exit(1)
