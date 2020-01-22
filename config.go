@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-func ReadConfig() {
+func readConfig() {
 	viper.SetConfigName("config")          // name of config file (without extension)
 	viper.SetConfigType("toml")
 	viper.AddConfigPath("/etc/locker/")

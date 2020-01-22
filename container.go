@@ -11,8 +11,10 @@ import (
 
 // Usage: ./locker command args...
 func main() {
-	ReadConfig()
+	readConfig()
 	parseArgs()
+	bindFlagsToConfig()
+
 	if len(pflag.Args()) < 1 {
 		fmt.Println("USAGE: command args...")
 		os.Exit(1)
@@ -29,7 +31,7 @@ func main() {
 func parent() {
 
 	//fork exec self
-	cmd := exec.Command("/proc/self/exe", pflag.Args()[0:]...)
+	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
@@ -45,7 +47,6 @@ func parent() {
 	//configure cgroups
 	CgInit()
 	defer CgDestruct()
-
 
 	createNetConnectivity()
 

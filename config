@@ -10,5 +10,5 @@ memory-swappiness = 0
 network = "forwarding"
 
 [security]
-#seccomp
-#apparmor
+seccomp = ""
+apparmor = ""
