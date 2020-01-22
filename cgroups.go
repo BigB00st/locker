@@ -13,10 +13,13 @@ import (
 func CgInit() {
 	cpusAllowed := viper.GetString("cgroups.cpus-allowed")
 	bytesLimit, err := ToBytes(viper.GetString("cgroups.memory-limit"))
+	swappiness := 0
 	if err != nil {
 		bytesLimit, _ = ToBytes(pflag.Lookup("memory-limit").DefValue)
 	}
-	swappiness := viper.GetInt("cgroups.memory-swapiness")
+	if(viper.GetBool("cgroups.memory-swappiness")) {
+		swappiness = 1
+	}
 	
 	//make cgruops
 	os.Mkdir(viper.GetString("cgroups.memory-path"), 0755)

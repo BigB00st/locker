@@ -4,7 +4,7 @@ path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 [cgroups]
 cpus-allowed = "0-3"
 memory-limit = "1GB"
-memory-swappiness = 0
+memory-swappiness = false
 
 [network]
 network = "forwarding"
