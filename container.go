@@ -40,9 +40,8 @@ func parent() {
 	}
 
 	//configure cgroups
-	config := NewConfig()
-	CgInit(config)
-	defer CgDestruct(config)
+	CgInit()
+	defer CgDestruct()
 
 
 	createNetConnectivity()
@@ -50,7 +49,7 @@ func parent() {
 	must(cmd.Start())
 	
 	fmt.Println("Child PID:", cmd.Process.Pid)
-	CgRemoveSelf(config)
+	CgRemoveSelf()
 
 	cmd.Wait()
 }
