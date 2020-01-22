@@ -1,4 +1,5 @@
 name = "LockerName"
+path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 [cgroups]
 cpus-allowed = "0-3"
