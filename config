@@ -2,7 +2,7 @@ name = "LockerName"
 
 [cgroups]
 cpus-allowed = "0-3"
-memory-limit = 10000000
+memory-limit = "1GB"
 memory-swappiness = 0
 
 [network]

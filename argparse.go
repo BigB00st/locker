@@ -12,7 +12,7 @@ func parseArgs() {
 	// cgroups
 	pflag.String("memory-limit", "1GB", "RAM limit of container in bytes")
 	pflag.Bool("memory-swappiness", false, "Allow swappiness in container (boolean)")
-	pflag.Int("cpu-count", 1, "Number of cpu cores to use in container")
+	pflag.String("cpus-allowed", "0", "Number of cpu cores to use in container")
 
 	// network
 	pflag.String("network", "forwarding", "Type of network to use")

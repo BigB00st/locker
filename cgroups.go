@@ -6,12 +6,16 @@ import (
 	"strconv"
 	"path"
 	"github.com/spf13/viper"
+	"github.com/spf13/pflag"
 )
 
 //cgroup function, limits recourse usage of process
 func CgInit() {
 	cpusAllowed := viper.GetString("cgroups.cpus-allowed")
-	bytesLimit := viper.GetInt("cgroups.memory-limit")
+	bytesLimit, err := ToBytes(viper.GetString("cgroups.memory-limit"))
+	if err != nil {
+		bytesLimit, _ = ToBytes(pflag.Lookup("memory-limit").DefValue)
+	}
 	swappiness := viper.GetInt("cgroups.memory-swapiness")
 	
 	//make cgruops
@@ -19,7 +23,7 @@ func CgInit() {
 	os.Mkdir(viper.GetString("cgroups.cpuset-path"), 0755)
 
 	//limit RAM
-	must(ioutil.WriteFile(path.Join(viper.GetString("cgroups.memory-path"), byteLimitFile), []byte(strconv.Itoa(bytesLimit)), 0700))
+	must(ioutil.WriteFile(path.Join(viper.GetString("cgroups.memory-path"), byteLimitFile), []byte(strconv.Itoa(int(bytesLimit))), 0700))
 
 	//disable swapiness
 	must(ioutil.WriteFile(path.Join(viper.GetString("cgroups.memory-path"), swapinessFile), []byte(strconv.Itoa(swappiness)), 0700))
