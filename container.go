@@ -67,7 +67,7 @@ func child() {
 	//command to run
 	cmd := exec.Command(nonFlagArgs[0], nonFlagArgs[1:]...)
 
-	syscallsWhitelist := readSeccompProfile(defaultSeccompProfilePath)
+	syscallsWhitelist := readSeccompProfile(viper.GetString("security.seccomp"))
 
 	//pipe streams
 	cmd.Stdin = os.Stdin

@@ -10,5 +10,5 @@ memory-swappiness = false
 network = "forwarding"
 
 [security]
-seccomp = ""
+seccomp = "seccomp_default.json"
 apparmor = ""
