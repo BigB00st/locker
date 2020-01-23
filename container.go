@@ -5,11 +5,17 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+	"github.com/spf13/viper"
+	"github.com/spf13/pflag"
 )
 
 // Usage: ./locker command args...
 func main() {
-	if len(os.Args) < 2 {
+	readConfig()
+	parseArgs()
+	bindFlagsToConfig()
+
+	if len(pflag.Args()) < 1 {
 		fmt.Println("USAGE: command args...")
 		os.Exit(1)
 	}
@@ -39,43 +45,44 @@ func parent() {
 	}
 
 	//configure cgroups
-	config := NewConfig()
-	CgInit(config)
-	defer CgDestruct(config)
-	CgRemoveSelf(config)
+	CgInit()
+	defer CgDestruct()
 
 	createNetConnectivity()
 
 	must(cmd.Start())
+	
 	fmt.Println("Child PID:", cmd.Process.Pid)
-
+	CgRemoveSelf()
 
 	cmd.Wait()
 }
 
 // Child process, runs requested command
 func child() {
-	fmt.Printf("Running: %v\n", os.Args[1:])
+	nonFlagArgs := pflag.Args()
+	fmt.Printf("Running: %v\n", nonFlagArgs[0:])
 	
 	//command to run
-	cmd := exec.Command(os.Args[1], os.Args[2:]...)
+	cmd := exec.Command(nonFlagArgs[0], nonFlagArgs[1:]...)
+
+	syscallsWhitelist := readSeccompProfile(defaultSeccompProfilePath)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	must(syscall.Sethostname([]byte("locker")))
+	must(syscall.Sethostname([]byte(viper.GetString("name"))))
 	must(syscall.Chroot(fsPath))
-	os.Setenv("PATH", linuxDefaultPATH)
-	must(os.Chdir("/"))
+	os.Setenv("PATH", viper.GetString("path"))
+	must(os.Chdir("/root"))
 
 	// mount proc for pids
-	must(syscall.Mount("/proc", "/proc", "proc", 0, ""))
-
+	must(syscall.Mount("proc", "/proc", "proc", 0, ""))
+	scmpFilter := createScmpFilter(syscallsWhitelist)
+	defer scmpFilter.Release()
 	cmd.Run()
-
-	must(syscall.Unmount("/proc", 0))
 }
 
 func must(err error) {
