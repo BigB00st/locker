@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"github.com/spf13/viper"
 	"github.com/spf13/pflag"
+	"strings"
 )
 
 // Usage: ./locker command args...
@@ -60,7 +61,7 @@ func parent() {
 
 // Child process, runs requested command
 func child() {
-	nonFlagArgs := pflag.Args()
+	nonFlagArgs := strings.Fields(pflag.Args()[0])
 	fmt.Printf("Running: %v\n", nonFlagArgs[0:])
 	
 	//command to run
