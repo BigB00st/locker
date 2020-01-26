@@ -80,6 +80,9 @@ func child() {
 
 	// mount proc for pids
 	must(syscall.Mount("proc", "/proc", "proc", 0, ""))
+	
+	dropCaps()
+
 	scmpFilter := createScmpFilter(syscallsWhitelist)
 	defer scmpFilter.Release()
 	cmd.Run()
