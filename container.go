@@ -29,8 +29,10 @@ func main() {
 
 // Parent function, forks and execs child, which runs the requested command
 func parent() {
+	// drop most capabilites
+	setCaps()
 
-	//fork exec self
+	//command to fork exec self
 	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
 
 	//pipe streams
@@ -80,8 +82,6 @@ func child() {
 
 	// mount proc for pids
 	must(syscall.Mount("proc", "/proc", "proc", 0, ""))
-	
-	dropCaps()
 
 	scmpFilter := createScmpFilter(syscallsWhitelist)
 	defer scmpFilter.Release()

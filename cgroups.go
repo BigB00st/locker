@@ -22,8 +22,8 @@ func CgInit() {
 	}
 	
 	//make cgruops
-	os.Mkdir(viper.GetString("cgroups.memory-path"), 0755)
-	os.Mkdir(viper.GetString("cgroups.cpuset-path"), 0755)
+	must(os.Mkdir(viper.GetString("cgroups.memory-path"), 0755))
+	must(os.Mkdir(viper.GetString("cgroups.cpuset-path"), 0755))
 
 	//limit RAM
 	must(ioutil.WriteFile(path.Join(viper.GetString("cgroups.memory-path"), byteLimitFile), []byte(strconv.Itoa(int(bytesLimit))), 0700))
