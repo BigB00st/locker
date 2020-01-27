@@ -4,7 +4,7 @@ import (
 	"github.com/syndtr/gocapability/capability"
 )
 
-var capabilitesWhitelist []capability.Cap = []capability.Cap{
+var setupCapabilites []capability.Cap = []capability.Cap{
 	//capability.CAP_AUDIT_CONTROL,
 	//capability.CAP_AUDIT_READ,
 	//capability.CAP_AUDIT_WRITE,
@@ -44,11 +44,18 @@ var capabilitesWhitelist []capability.Cap = []capability.Cap{
 	//capability.CAP_WAKE_ALARM,
 }
 
-func setCaps(){
+var containerCapabilites []capability.Cap = []capability.Cap{
+	capability.CAP_NET_ADMIN, //needed for network
+	capability.CAP_NET_BIND_SERVICE, //needed for port binding (<1024)
+	capability.CAP_NET_RAW, //needed for network
+}
+
+// Function sets capabilites as only given list
+func setCaps(capList []capability.Cap){
 	caps, err := capability.NewPid2(0)
 	must(err)
-	for _, cur := range capabilitesWhitelist {
+	for _, cur := range capList {
 		caps.Set(capability.CAPS | capability.BOUNDING, cur)
 	}
-	caps.Apply(capability.CAPS | capability.BOUNDING)
+	must(caps.Apply(capability.CAPS | capability.BOUNDING))
 }

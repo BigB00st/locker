@@ -30,7 +30,7 @@ func main() {
 // Parent function, forks and execs child, which runs the requested command
 func parent() {
 	// drop most capabilites
-	setCaps()
+	setCaps(setupCapabilites)
 
 	//command to fork exec self
 	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
@@ -65,10 +65,10 @@ func child() {
 	nonFlagArgs := pflag.Args()
 	fmt.Printf("Running: %v\n", nonFlagArgs[0:])
 	
+	syscallsWhitelist := readSeccompProfile(defaultSeccompProfilePath)
+
 	//command to run
 	cmd := exec.Command(nonFlagArgs[0], nonFlagArgs[1:]...)
-
-	syscallsWhitelist := readSeccompProfile(defaultSeccompProfilePath)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
@@ -85,6 +85,8 @@ func child() {
 
 	scmpFilter := createScmpFilter(syscallsWhitelist)
 	defer scmpFilter.Release()
+	setCaps(containerCapabilites)
+
 	cmd.Run()
 }
 
