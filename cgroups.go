@@ -1,12 +1,13 @@
 package main
 
 import (
-	"os"
 	"io/ioutil"
-	"strconv"
+	"os"
 	"path"
-	"github.com/spf13/viper"
+	"strconv"
+
 	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 //cgroup function, limits recourse usage of process
@@ -17,10 +18,10 @@ func CgInit() {
 	if err != nil {
 		bytesLimit, _ = ToBytes(pflag.Lookup("memory-limit").DefValue)
 	}
-	if(viper.GetBool("cgroups.memory-swappiness")) {
+	if viper.GetBool("cgroups.memory-swappiness") {
 		swappiness = 1
 	}
-	
+
 	//make cgruops
 	must(os.Mkdir(viper.GetString("cgroups.memory-path"), 0755))
 	must(os.Mkdir(viper.GetString("cgroups.cpuset-path"), 0755))

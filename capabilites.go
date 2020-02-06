@@ -18,10 +18,10 @@ var setupCapabilites []capability.Cap = []capability.Cap{
 	//capability.CAP_KILL,
 	//capability.CAP_LEASE,
 	//capability.CAP_LINUX_IMMUTABLE,
-	capability.CAP_MAC_ADMIN, //needed for MAC
+	capability.CAP_MAC_ADMIN,    //needed for MAC
 	capability.CAP_MAC_OVERRIDE, //needed for MAC
 	//capability.CAP_MKNOD,
-	capability.CAP_NET_ADMIN, //needed for network
+	capability.CAP_NET_ADMIN,        //needed for network
 	capability.CAP_NET_BIND_SERVICE, //needed for port binding (<1024)
 	//capability.CAP_NET_BROADCAST,
 	capability.CAP_NET_RAW, //needed for network
@@ -45,17 +45,17 @@ var setupCapabilites []capability.Cap = []capability.Cap{
 }
 
 var containerCapabilites []capability.Cap = []capability.Cap{
-	capability.CAP_NET_ADMIN, //needed for network
+	capability.CAP_NET_ADMIN,        //needed for network
 	capability.CAP_NET_BIND_SERVICE, //needed for port binding (<1024)
-	capability.CAP_NET_RAW, //needed for network
+	capability.CAP_NET_RAW,          //needed for network
 }
 
 // Function sets capabilites as only given list
-func setCaps(capList []capability.Cap){
+func setCaps(capList []capability.Cap) {
 	caps, err := capability.NewPid2(0)
 	must(err)
 	for _, cur := range capList {
-		caps.Set(capability.CAPS | capability.BOUNDING, cur)
+		caps.Set(capability.CAPS|capability.BOUNDING, cur)
 	}
 	must(caps.Apply(capability.CAPS | capability.BOUNDING))
 }

@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"syscall"
-	"github.com/spf13/viper"
-	"github.com/spf13/pflag"
 	"strings"
+	"syscall"
+
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 // Usage: ./locker command args...
@@ -59,7 +60,7 @@ func parent() {
 	createNetConnectivity()
 
 	must(cmd.Start())
-	
+
 	fmt.Println("Child PID:", cmd.Process.Pid)
 	CgRemoveSelf()
 

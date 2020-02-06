@@ -1,33 +1,32 @@
 package main
 
-
 import (
-	"os/exec"
 	"bytes"
-	"strings"
 	"errors"
 	"net"
-	"strconv"
-	"syscall"
+	"os/exec"
 	"runtime"
+	"strconv"
+	"strings"
+	"syscall"
 )
 
 // SYS_SETNS syscall allows changing the namespace of the current process.
 var SYS_SETNS = map[string]uintptr{
-	"386":     346,
-	"amd64":   308,
-	"arm64":   268,
-	"arm":     375,
-	"mips":    4344,
-	"mipsle":  4344,
-	"mips64le":  4344,
-	"ppc64":   350,
-	"ppc64le": 350,
-	"riscv64": 268,
-	"s390x":   339,
+	"386":      346,
+	"amd64":    308,
+	"arm64":    268,
+	"arm":      375,
+	"mips":     4344,
+	"mipsle":   4344,
+	"mips64le": 4344,
+	"ppc64":    350,
+	"ppc64le":  350,
+	"riscv64":  268,
+	"s390x":    339,
 }[runtime.GOARCH]
 
-func createNetConnectivity(){
+func createNetConnectivity() {
 	nsName := "lockerNs"
 	vethName := "v-locker"
 	vethPeerName := "v-locker-peer"
@@ -61,15 +60,15 @@ func createNetConnectivity(){
 
 	// enable ipv4 forwarding
 	enableIpv4Forwarding()
-	
+
 	// set rules to allow connectivity
 	setIptablesRules(masqueradeIp, netInterface, vethName)
 
 	joinNsByName(nsName)
 }
 
-func joinNsByName(nsName string){
-	nsHandle, err := getFdFromPath(netnsDirectory+nsName)
+func joinNsByName(nsName string) {
+	nsHandle, err := getFdFromPath(netnsDirectory + nsName)
 	must(err)
 	must(setNs(nsHandle, syscall.CLONE_NEWNET))
 }
@@ -83,14 +82,14 @@ func setNs(nsHandle int, nsType int) (err error) {
 }
 
 func AddNetNs(nsName string) {
-	
+
 	if netNsExists(nsName) {
 		return
 	}
 
 	cmd := exec.Command("ip", "netns", "add", nsName)
 	must(cmd.Run())
-} 
+}
 
 // function return true if namespace exists
 func netNsExists(nsName string) bool {
@@ -106,14 +105,14 @@ func netNsExists(nsName string) bool {
 }
 
 func addVethPair(vethName, vethPeerName string) {
-	
+
 	if netInterfaceExists(vethName) {
 		return
 	}
 
 	cmd := exec.Command("ip", "link", "add", vethName, "type", "veth", "peer", "name", vethPeerName)
 	must(cmd.Run())
-} 
+}
 
 // function return true if Veth pair exists
 func netInterfaceExists(vethName string) bool {
@@ -124,7 +123,7 @@ func netInterfaceExists(vethName string) bool {
 	cmd.Stdout = &output
 
 	cmd.Run()
-	return strings.Contains(output.String(), vethName + "@")
+	return strings.Contains(output.String(), vethName+"@")
 }
 
 func assignVethToNs(vethName, nsName string) {
@@ -199,13 +198,13 @@ func setIptablesRules(masqueradeIp, netInterface, vethName string) {
 	must(cmd.Run())
 
 	// allow masquerading
-	cmd = exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING" ,"-s", masqueradeIp, "-o", netInterface, "-j" ,"MASQUERADE")
+	cmd = exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", masqueradeIp, "-o", netInterface, "-j", "MASQUERADE")
 	must(cmd.Run())
 
 	// Allow forwarding between net interface and veth interface
 	cmd = exec.Command("iptables", "-A", "FORWARD", "-i", netInterface, "-o", vethName, "-j", "ACCEPT")
 	must(cmd.Run())
-	cmd = exec.Command("iptables", "-A", "FORWARD", "-o", netInterface, "-i", vethName, "-j" , "ACCEPT")
+	cmd = exec.Command("iptables", "-A", "FORWARD", "-o", netInterface, "-i", vethName, "-j", "ACCEPT")
 	must(cmd.Run())
 }
 
@@ -220,7 +219,7 @@ func connectedInterfaceName() string {
 	//pipe output
 	var output bytes.Buffer
 	cmd.Stdout = &output
-	
+
 	must(cmd.Run())
 	for _, line := range strings.Split(output.String(), "\n") {
 		words := strings.Split(line, " ")
@@ -230,7 +229,6 @@ func connectedInterfaceName() string {
 	}
 	panic("Not connected to internet")
 }
-
 
 // https://play.golang.org/p/BDt3qEQ_2H
 // gets local ip
@@ -268,7 +266,7 @@ func localIP() (string, error) {
 			if ip == nil {
 				continue // not an ipv4 address
 			}
-			return ip.String()+"/"+getIp(mask), nil
+			return ip.String() + "/" + getIp(mask), nil
 		}
 	}
 	return "", errors.New("are you connected to the network?")

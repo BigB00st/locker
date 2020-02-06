@@ -1,10 +1,10 @@
 package main
 
 import (
+	"errors"
+	"strconv"
 	"strings"
 	"unicode"
-    "errors"
-    "strconv"
 )
 
 // https://github.com/cloudfoundry/bytefmt/blob/master/bytes.go

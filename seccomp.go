@@ -1,9 +1,10 @@
 package main
 
 import (
-	"io/ioutil"
 	"encoding/json"
+	"io/ioutil"
 	"syscall"
+
 	libseccomp "github.com/seccomp/libseccomp-golang"
 )
 
@@ -24,14 +25,14 @@ func createScmpFilter(syscalls []string) *libseccomp.ScmpFilter {
 	scmpFilter, err := libseccomp.NewFilter(libseccomp.ActErrno.SetReturnCode(int16(syscall.EPERM)))
 	must(err)
 
-	// whitelist given syscalls 
-    for _, syscall := range syscalls {
-        syscallID, err := libseccomp.GetSyscallFromName(syscall)
+	// whitelist given syscalls
+	for _, syscall := range syscalls {
+		syscallID, err := libseccomp.GetSyscallFromName(syscall)
 		if err == nil {
 			must(scmpFilter.AddRule(syscallID, libseccomp.ActAllow))
 		}
 	}
-	
+
 	must(scmpFilter.Load())
 	return scmpFilter
 }
