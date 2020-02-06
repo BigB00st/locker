@@ -25,6 +25,5 @@ func readConfig() error {
 	viper.Set("cgroups.cpuset-root-path", path.Join(cgroupPath, cgroupCPUSet))
 	viper.Set("cgroups.memory-path", path.Join(cgroupPath, cgroupMemory, viper.GetString("cgroups.name")))
 	viper.Set("cgroups.memory-root-path", path.Join(cgroupPath, cgroupMemory))
-	//fmt.Println("container name = ", viper.Get("name"))
 	return nil
 }
