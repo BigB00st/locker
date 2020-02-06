@@ -18,7 +18,10 @@ func main() {
 		panic(err)
 	}
 	parseArgs()
-	bindFlagsToConfig()
+	err = bindFlagsToConfig()
+	if err != nil {
+		panic(err)
+	}
 
 	if os.Geteuid() != 0 {
 		fmt.Println("Please run as root")
