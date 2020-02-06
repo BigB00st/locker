@@ -15,6 +15,11 @@ func main() {
 	parseArgs()
 	bindFlagsToConfig()
 
+	if os.Geteuid() != 0 {
+		fmt.Println("Please run as root")
+		os.Exit(1)
+	}
+
 	if len(pflag.Args()) < 1 {
 		fmt.Println("USAGE: command args...")
 		os.Exit(1)
