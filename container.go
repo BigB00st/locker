@@ -13,7 +13,10 @@ import (
 
 // Usage: ./locker command args...
 func main() {
-	readConfig()
+	err := readConfig()
+	if err != nil {
+		panic(err)
+	}
 	parseArgs()
 	bindFlagsToConfig()
 
