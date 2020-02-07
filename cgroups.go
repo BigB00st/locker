@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"syscall"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -23,8 +24,8 @@ func CgInit() {
 	}
 
 	//make cgruops
-	must(os.Mkdir(viper.GetString("cgroups.memory-path"), 0755))
-	must(os.Mkdir(viper.GetString("cgroups.cpuset-path"), 0755))
+	must(os.Mkdir(viper.GetString("cgroups.memory-path"), os.ModeDir))
+	must(os.Mkdir(viper.GetString("cgroups.cpuset-path"), os.ModeDir))
 
 	//limit RAM
 	must(ioutil.WriteFile(path.Join(viper.GetString("cgroups.memory-path"), byteLimitFile), []byte(strconv.Itoa(int(bytesLimit))), 0700))
@@ -60,6 +61,6 @@ func CgRemoveSelf() {
 
 //cgroup function, limits recourse usage of process
 func CgDestruct() {
-	must(os.Remove(viper.GetString("cgroups.memory-path")))
-	must(os.Remove(viper.GetString("cgroups.cpuset-path")))
+	must(syscall.Rmdir(viper.GetString("cgroups.memory-path")))
+	must(syscall.Rmdir(viper.GetString("cgroups.cpuset-path")))
 }
