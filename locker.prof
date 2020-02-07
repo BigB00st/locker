@@ -1,0 +1,56 @@
+# Last Modified: Fri Feb  7 23:53:43 2020
+#include <tunables/global>
+
+# vim:syntax=apparmor
+# AppArmor policy for locker
+# ###AUTHOR###
+# ###COPYRIGHT###
+# ###COMMENT###
+# No template variables specified
+
+
+/home/amit/documents/locker/locker flags=(attach_disconnected) {
+  #include <abstractions/base>
+
+  capability dac_override,
+  capability dac_read_search,
+  capability mac_admin,
+  capability mac_override,
+  capability net_admin,
+  capability net_raw,
+  capability sys_admin,
+  capability sys_chroot,
+  capability sys_nice,
+
+  network inet icmp,
+  network inet tcp,
+  network inet udp,
+
+  mount,
+
+  /bin/bash mrix, # the command that will be run
+  /etc/locker/* r,
+  @{HOME}/containers/ubuntu/** rwix, # container path
+  @{HOME}/documents/locker/* rix, #pwd
+  /sbin/ip mrix,
+  /usr/bin/dircolors mrix,
+  /usr/bin/groups mrix,
+  /usr/bin/ip ix,
+  /usr/bin/rmdir mrix,
+  /usr/bin/sysctl mrix,
+  /usr/bin/xtables-legacy-multi mrix,
+  owner /etc/iproute2/group r,
+  owner /proc/*/cgroup r,
+  owner /proc/sys/kernel/cap_last_cap r,
+  owner /proc/sys/net/ipv4/ip_forward w,
+  owner /run/netns/ r,
+  owner /run/netns/lockerNs rw,
+  owner /run/xtables.lock rwk,
+  owner /sys/fs/cgroup/*/locker@{pid}** w,
+  owner /sys/fs/cgroup/cpuset/cgroup.procs w,
+  owner /sys/fs/cgroup/cpuset/cpuset.mems r,
+  owner /sys/fs/cgroup/memory/cgroup.procs w,
+  owner /sys/kernel/mm/transparent_hugepage/hpage_pmd_size r,
+  owner /usr/bin/ip r,
+
+}
