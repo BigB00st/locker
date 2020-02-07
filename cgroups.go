@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -14,10 +15,10 @@ import (
 //cgroup function, limits recourse usage of process
 func CgInit() {
 	cpusAllowed := viper.GetString("cgroups.cpus-allowed")
-	bytesLimit, err := ToBytes(viper.GetString("cgroups.memory-limit"))
+	bytesLimit, err := bytefmt.ToBytes(viper.GetString("cgroups.memory-limit"))
 	swappiness := 0
 	if err != nil {
-		bytesLimit, _ = ToBytes(pflag.Lookup("memory-limit").DefValue)
+		bytesLimit, _ = bytefmt.ToBytes(pflag.Lookup("memory-limit").DefValue)
 	}
 	if viper.GetBool("cgroups.memory-swappiness") {
 		swappiness = 1
