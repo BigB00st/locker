@@ -27,7 +27,7 @@ $EXECUTABLE flags=(attach_disconnected) {
   mount,
 
   $TEMP-FILE rw,
-  /bin/bash mrix, # the command that will be run
+  $COMMAND mrix,
   /etc/locker/* r,
   /sbin/ip mrix,
   /sys/kernel/mm/transparent_hugepage/hpage_pmd_size r,

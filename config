@@ -11,4 +11,5 @@ network = "forwarding"
 
 [security]
 seccomp = "seccomp_default.json"
-apparmor = ""
+aa-template = "locker.prof"
+aa-profile-name = "locker-default"

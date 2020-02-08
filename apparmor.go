@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -22,14 +23,14 @@ func apparmorEnabled() bool {
 // replace the profile. The `-K` is necessary to make sure that apparmor_parser
 // doesn't try to write to a read-only filesystem.
 func LoadProfile(profilePath string) error {
-	_, err := cmdOut("apparmor_parser", "-Kr", profilePath)
+	err := exec.Command("apparmor_parser", "-Kr", profilePath).Run()
 	return err
 }
 
 // LoadProfile runs `apparmor_parser -R` on a specified apparmor profile to
 // unload the profile.
 func UnloadProfile(profilePath string) error {
-	_, err := cmdOut("apparmor_parser", "-R", profilePath)
+	err := exec.Command("apparmor_parser", "-R", profilePath).Run()
 	os.Remove(profilePath)
 	return err
 }
@@ -40,10 +41,10 @@ func InstallProfile() error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
+
 	profilePath := f.Name()
 	viper.Set("aa-profile-path", profilePath)
-
-	defer f.Close()
 
 	GenerateProfile(f)
 	return LoadProfile(profilePath)
@@ -63,6 +64,8 @@ func GenerateProfile(f *os.File) error {
 	profile := string(profileBytes)
 	profile = strings.Replace(profile, "$EXECUTABLE", ex, 1)
 	profile = strings.Replace(profile, "$TEMP-FILE", f.Name(), 1)
+	profile = strings.Replace(profile, "$COMMAND", os.Args[1], 1)
+
 	_, err = f.Write([]byte(profile))
 	return err
 }
