@@ -19,8 +19,9 @@ func parseArgs() {
 	pflag.String("network", "forwarding", "Type of network to use")
 
 	// security
-	pflag.String("seccomp", "seccomp_default.json", "Seccomp profile name")
-	pflag.String("apparmor", "not-implemented", "not-implemented")
+	pflag.String("seccomp", "seccomp_default.json", "Seccomp profile path")
+	pflag.String("aa-profile-name", "locker-default", "Apparmor profile name")
+	pflag.String("aa-template", "locker.prof", "Apparmor profile template")
 
 	pflag.Parse()
 }
@@ -40,5 +41,6 @@ func bindFlagsToConfig() {
 
 	// security
 	viper.BindPFlag("security.seccomp", pflag.Lookup("seccomp"))
-	viper.BindPFlag("security.apparmor", pflag.Lookup("apparmor"))
+	viper.BindPFlag("security.aa-profile-name", pflag.Lookup("aa-profile-name"))
+	viper.BindPFlag("security.aa-template", pflag.Lookup("aa-template"))
 }

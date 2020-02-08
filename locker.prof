@@ -3,15 +3,9 @@
 
 # vim:syntax=apparmor
 # AppArmor policy for locker
-# ###AUTHOR###
-# ###COPYRIGHT###
-# ###COMMENT###
-# No template variables specified
 
-
-/home/amit/documents/locker/locker flags=(attach_disconnected) {
+$EXECUTABLE flags=(attach_disconnected) {
   #include <abstractions/base>
-  #include <abstractions/opencl-pocl>
 
   deny capability setpcap,
   deny capability sys_module,
@@ -32,6 +26,7 @@
 
   mount,
 
+  $TEMP-FILE rw,
   /bin/bash mrix, # the command that will be run
   /etc/locker/* r,
   /sbin/ip mrix,

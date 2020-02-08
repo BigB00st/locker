@@ -13,7 +13,7 @@ import (
 
 // Usage: ./locker command args...
 func main() {
-	/*readConfig()
+	readConfig()
 	parseArgs()
 	bindFlagsToConfig()
 
@@ -31,14 +31,19 @@ func main() {
 		child()
 	} else {
 		parent()
-	}*/
-	fmt.Println(apparmorEnabled())
+	}
 }
 
 // Parent function, forks and execs child, which runs the requested command
 func parent() {
 	// drop most capabilites
 	setCaps(setupCapabilites)
+
+	if apparmorEnabled() {
+		if err := InstallProfile(); err == nil {
+			defer UnloadProfile(viper.GetString("aa-profile-path"))
+		}
+	}
 
 	//command to fork exec self
 	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
