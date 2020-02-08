@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"net"
 	"os/exec"
@@ -35,7 +34,8 @@ func createNetConnectivity() {
 	vethPeerCIDR := "10.200.1.2/24"
 	loopback := "lo"
 	masqueradeIp := "10.200.1.0/255.255.255.0"
-	netInterface := connectedInterfaceName()
+	netInterface, err := connectedInterfaceName()
+	must(err)
 
 	// create network namespace
 	AddNetNs(nsName)
@@ -93,14 +93,8 @@ func AddNetNs(nsName string) {
 
 // function return true if namespace exists
 func netNsExists(nsName string) bool {
-	cmd := exec.Command("ip", "netns", "list")
-
-	//pipe output
-	var output bytes.Buffer
-	cmd.Stdout = &output
-
-	cmd.Run()
-	namespaces := strings.Split(output.String(), "\n")
+	out, _ := cmdOut("ip", "netns", "list")
+	namespaces := strings.Split(out, "\n")
 	return stringInSlice(nsName, namespaces)
 }
 
@@ -116,14 +110,8 @@ func addVethPair(vethName, vethPeerName string) {
 
 // function return true if Veth pair exists
 func netInterfaceExists(vethName string) bool {
-	cmd := exec.Command("ip", "link", "list")
-
-	//pipe output
-	var output bytes.Buffer
-	cmd.Stdout = &output
-
-	cmd.Run()
-	return strings.Contains(output.String(), vethName+"@")
+	out, _ := cmdOut("ip", "link", "list")
+	return strings.Contains(out, vethName+"@")
 }
 
 func assignVethToNs(vethName, nsName string) {
@@ -147,14 +135,8 @@ func setInterfaceUpInsideNs(vethName, nsName string) {
 }
 
 func bridgeExists(bridgeName string) bool {
-	cmd := exec.Command("ip", "link", "list", "type", "bridge")
-
-	//pipe output
-	var output bytes.Buffer
-	cmd.Stdout = &output
-
-	cmd.Run()
-	return strings.Contains(output.String(), bridgeName)
+	out, _ := cmdOut("ip", "link", "list", "type", "bridge")
+	return strings.Contains(out, bridgeName)
 }
 
 func createBridge(bridgeName string) {
@@ -213,21 +195,16 @@ func enableIpv4Forwarding() {
 	must(cmd.Run())
 }
 
-func connectedInterfaceName() string {
-	cmd := exec.Command("ip", "-4", "route", "ls")
+func connectedInterfaceName() (string, error) {
+	out, _ := cmdOut("ip", "-4", "route", "ls")
 
-	//pipe output
-	var output bytes.Buffer
-	cmd.Stdout = &output
-
-	must(cmd.Run())
-	for _, line := range strings.Split(output.String(), "\n") {
+	for _, line := range strings.Split(out, "\n") {
 		words := strings.Split(line, " ")
 		if words[ipRouteDefaultIndex] == "default" {
-			return words[ipRouteNameIndex]
+			return words[ipRouteNameIndex], nil
 		}
 	}
-	panic("Not connected to internet")
+	return "", errors.New("Not connected to internet")
 }
 
 // https://play.golang.org/p/BDt3qEQ_2H
