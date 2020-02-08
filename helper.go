@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -18,4 +20,16 @@ func stringInSlice(str string, list []string) bool {
 		}
 	}
 	return false
+}
+
+// function runs command and return output as string
+func cmdOut(binary string, arg ...string) (string, error) {
+	c := exec.Command(binary, arg...)
+
+	output, err := c.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("running `%s %s` failed with output: %s\nerror: %v", c.Path, strings.Join(c.Args, " "), output, err)
+	}
+
+	return string(output), nil
 }

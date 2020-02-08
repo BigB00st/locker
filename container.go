@@ -13,7 +13,7 @@ import (
 
 // Usage: ./locker command args...
 func main() {
-	readConfig()
+	/*readConfig()
 	parseArgs()
 	bindFlagsToConfig()
 
@@ -31,7 +31,8 @@ func main() {
 		child()
 	} else {
 		parent()
-	}
+	}*/
+	fmt.Println(apparmorEnabled())
 }
 
 // Parent function, forks and execs child, which runs the requested command
