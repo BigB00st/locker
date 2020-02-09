@@ -11,10 +11,10 @@ const cgroupMemory = "memory"
 const cgroupCPUSet = "cpuset" //Need to decide if we also want cpu control
 const swapinessFile = "memory.swappiness"
 const byteLimitFile = "memory.limit_in_bytes"
+const selfMinMemory = 5000000 //required for loading the parent
 const cpusetLimitFile = "cpuset.cpus"
 const cpusetMemFile = "cpuset.mems"
 const procsFile = "cgroup.procs"
-const notifyOnReleaseFile = "notify_on_release"
 
 // network related
 const subnetMaskBytes = 4

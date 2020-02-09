@@ -66,15 +66,31 @@ func parent() {
 	}
 
 	//configure cgroups
-	CgInit()
-	defer CgDestruct()
+	err := CgInit()
+	if err != nil {
+		cgerr := CgDestruct()
+		if err != nil {
+			fmt.Println(cgerr)
+		}
+		panic(err)
+	}
 
-	createNetConnectivity()
+	//Delete new cgroups at the end
+	defer func() {
+		if err := CgDestruct(); err != nil {
+			panic(err)
+		}
+	}()
+
+	defer createNetConnectivity()
 
 	must(cmd.Start())
 
 	fmt.Println("Child PID:", cmd.Process.Pid)
-	CgRemoveSelf()
+	err = CgRemoveSelf()
+	if err != nil {
+		panic(err)
+	}
 
 	cmd.Wait()
 }
