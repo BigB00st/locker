@@ -11,7 +11,7 @@ import (
 func parseArgs() {
 	// generic
 	pflag.String("name", "locker", "Name of container (used in hostname and more)")
-	pflag.String("path", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "Path env variable")
+	pflag.String("path", linuxDefaultPATH, "Path env variable")
 
 	// cgroups
 	pflag.String("memory-limit", "1GB", "RAM limit of container in bytes")
