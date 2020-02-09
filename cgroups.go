@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
@@ -37,7 +36,6 @@ func CgInit() error {
 
 	//limit RAM and allow more for parent process
 	err = ioutil.WriteFile(path.Join(viper.GetString("cgroups.memory-path"), byteLimitFile), []byte(strconv.Itoa(int(bytesLimit+selfMinMemory))), 0700)
-	fmt.Printf("write %q to the the memory's byte-limit file", []byte(strconv.Itoa(int(bytesLimit+selfMinMemory))))
 	if err != nil {
 		return errors.Wrapf(err, "coudn't write %q to the the memory's byte-limit file", []byte(strconv.Itoa(int(bytesLimit+selfMinMemory))))
 	}
