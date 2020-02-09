@@ -49,8 +49,14 @@ func parent() {
 	}
 
 	if apparmorEnabled() {
-		if err := InstallProfile(); err == nil {
-			defer UnloadProfile(viper.GetString("aa-profile-path"))
+		if err := InstallProfile(); err != nil {
+			panic(err)
+		} else {
+			defer func() {
+				if err := UnloadProfile(viper.GetString("aa-profile-path")); err != nil {
+					panic(err)
+				}
+			}()
 		}
 	}
 
@@ -72,7 +78,7 @@ func parent() {
 	err = CgInit()
 	if err != nil {
 		cgerr := CgDestruct()
-		if err != nil {
+		if cgerr != nil {
 			fmt.Println(cgerr)
 		}
 		panic(err)

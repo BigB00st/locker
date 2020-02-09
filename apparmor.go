@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -31,23 +32,36 @@ func LoadProfile(profilePath string) error {
 // unload the profile.
 func UnloadProfile(profilePath string) error {
 	err := exec.Command("apparmor_parser", "-R", profilePath).Run()
-	os.Remove(profilePath)
-	return err
+	if err != nil {
+		return errors.Wrap(err, "Call of 'apparmor_parser -R' failed")
+	}
+	err = os.Remove(profilePath)
+	if err != nil {
+		return errors.Wrap(err, "Couldn't remove apparmor tempfile")
+	}
+	return nil
 }
 
 // Function installs default apparmor profile
 func InstallProfile() error {
 	f, err := ioutil.TempFile("", viper.GetString("security.aa-profile-name"))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "Couldn't generate temp apparmor file")
 	}
 	defer f.Close()
 
 	profilePath := f.Name()
 	viper.Set("aa-profile-path", profilePath)
 
-	GenerateProfile(f)
-	return LoadProfile(profilePath)
+	err = GenerateProfile(f)
+	if err != nil {
+		return errors.Wrap(err, "Couldn't Generate apparmor profile")
+	}
+	err = LoadProfile(profilePath)
+	if err != nil {
+		return errors.Wrap(err, "Couldn't load apparmor profile")
+	}
+	return nil
 }
 
 func GenerateProfile(f *os.File) error {
