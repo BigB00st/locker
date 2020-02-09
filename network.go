@@ -3,6 +3,7 @@ package main
 import (
 	"net"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -117,9 +118,7 @@ func AddNetNs(nsName string) error {
 
 // function return true if namespace exists
 func netNsExists(nsName string) bool {
-	out, _ := cmdOut("ip", "netns", "list")
-	namespaces := strings.Split(out, "\n")
-	return stringInSlice(nsName, namespaces)
+	return fileExists(filepath.Join(netnsDirectory, nsName))
 }
 
 func addVethPair(vethName, vethPeerName string) error {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"syscall"
 )
 
@@ -11,4 +12,10 @@ func getFdFromPath(path string) (int, error) {
 		return -1, err
 	}
 	return fd, nil
+}
+
+// returns true if file exists
+func fileExists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	return !os.IsNotExist(err)
 }
