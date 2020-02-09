@@ -65,11 +65,11 @@ func bindFlagsToConfig() error {
 	if err != nil {
 		return err
 	}
-	err = bindFlagToConfig("security.ap-profile-name", "aa-profile-name")
+	err = bindFlagToConfig("security.aa-profile-name", "aa-profile-name")
 	if err != nil {
 		return err
 	}
-	err = bindFlagToConfig("security.aa-template", "ap-profile-name")
+	err = bindFlagToConfig("security.aa-template", "aa-profile-name")
 	if err != nil {
 		return err
 	}
