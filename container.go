@@ -103,7 +103,10 @@ func child() {
 	//command to run
 	cmd := exec.Command(nonFlagArgs[0], nonFlagArgs[1:]...)
 
-	syscallsWhitelist := readSeccompProfile(viper.GetString("security.seccomp"))
+	syscallsWhitelist, err := readSeccompProfile(viper.GetString("security.seccomp"))
+	if err != nil {
+		panic(err)
+	}
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
@@ -118,7 +121,10 @@ func child() {
 	// mount proc for pids
 	must(syscall.Mount("proc", "/proc", "proc", 0, ""))
 
-	scmpFilter := createScmpFilter(syscallsWhitelist)
+	scmpFilter, err := createScmpFilter(syscallsWhitelist)
+	if err != nil {
+		panic(err)
+	}
 	defer scmpFilter.Release()
 	setCaps(containerCapabilites)
 

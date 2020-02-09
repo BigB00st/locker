@@ -5,34 +5,48 @@ import (
 	"io/ioutil"
 	"syscall"
 
+	"github.com/pkg/errors"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 )
 
-func readSeccompProfile(path string) []string {
+func readSeccompProfile(path string) ([]string, error) {
 	data, err := ioutil.ReadFile(path)
-	must(err)
+	if err != nil {
+		return nil, errors.Wrap(err, "Couldn't read seccomp profile")
+	}
 
 	var result map[string][]string
 
 	// load json into AllowedSyscalls struct
-	must(json.Unmarshal(data, &result))
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		return nil, errors.Wrap(err, "Couldn't parse seccomp profile")
+	}
 
-	return result["syscalls"]
+	return result["syscalls"], nil
 }
 
-func createScmpFilter(syscalls []string) *libseccomp.ScmpFilter {
+func createScmpFilter(syscalls []string) (*libseccomp.ScmpFilter, error) {
 	// blacklist everything (EPERM - Permission not permitted)
 	scmpFilter, err := libseccomp.NewFilter(libseccomp.ActErrno.SetReturnCode(int16(syscall.EPERM)))
-	must(err)
+	if err != nil {
+		return nil, errors.Wrap(err, "Coudn't create new seccomp filter")
+	}
 
 	// whitelist given syscalls
 	for _, syscall := range syscalls {
 		syscallID, err := libseccomp.GetSyscallFromName(syscall)
 		if err == nil {
-			must(scmpFilter.AddRule(syscallID, libseccomp.ActAllow))
+			err = scmpFilter.AddRule(syscallID, libseccomp.ActAllow)
+			if err != nil {
+				return nil, errors.Wrapf(err, "Coudn't allow %q syscall in seccomp profile", syscall)
+			}
 		}
 	}
 
-	must(scmpFilter.Load())
-	return scmpFilter
+	err = scmpFilter.Load()
+	if err != nil {
+		return nil, errors.Wrap(err, "Couldn't load seccomp profile")
+	}
+	return scmpFilter, nil
 }
