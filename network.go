@@ -1,13 +1,14 @@
 package main
 
 import (
-	"errors"
 	"net"
 	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/pkg/errors"
 )
 
 // SYS_SETNS syscall allows changing the namespace of the current process.
@@ -25,7 +26,7 @@ var SYS_SETNS = map[string]uintptr{
 	"s390x":    339,
 }[runtime.GOARCH]
 
-func createNetConnectivity() {
+func createNetConnectivity() error {
 	nsName := "lockerNs"
 	vethName := "v-locker"
 	vethPeerName := "v-locker-peer"
@@ -35,60 +36,83 @@ func createNetConnectivity() {
 	loopback := "lo"
 	masqueradeIp := "10.200.1.0/255.255.255.0"
 	netInterface, err := connectedInterfaceName()
-	must(err)
+	if err != nil {
+		return err
+	}
 
 	// create network namespace
-	AddNetNs(nsName)
+	if err := AddNetNs(nsName); err != nil {
+		return err
+	}
 
 	// create veth pair
-	addVethPair(vethName, vethPeerName)
+	if err := addVethPair(vethName, vethPeerName); err != nil {
+		return err
+	}
 
 	// assign peer to namespace
 	assignVethToNs(vethPeerName, nsName)
 
 	// setup ipv4 of veth
 	addIp(vethCIDR, vethName)
-	setInterfaceUp(vethName)
+	if err := setInterfaceUp(vethName); err != nil {
+		return err
+	}
 
 	// setup ipv4 of veth peer
 	addIpInsideNs(vethPeerCIDR, vethPeerName, nsName)
-	setInterfaceUpInsideNs(vethPeerName, nsName)
-	setInterfaceUpInsideNs(loopback, nsName)
+	if err := setInterfaceUpInsideNs(vethPeerName, nsName); err != nil {
+		return err
+	}
+	if err := setInterfaceUpInsideNs(loopback, nsName); err != nil {
+		return err
+	}
 
 	// add default gateway inside namespace
 	addDefaultGateway(nsName, vethIp)
 
 	// enable ipv4 forwarding
-	enableIpv4Forwarding()
+	if err := enableIpv4Forwarding(); err != nil {
+		return err
+	}
 
 	// set rules to allow connectivity
-	setIptablesRules(masqueradeIp, netInterface, vethName)
-
-	joinNsByName(nsName)
-}
-
-func joinNsByName(nsName string) {
-	nsHandle, err := getFdFromPath(netnsDirectory + nsName)
-	must(err)
-	must(setNs(nsHandle, syscall.CLONE_NEWNET))
-}
-
-func setNs(nsHandle int, nsType int) (err error) {
-	_, _, e1 := syscall.Syscall(SYS_SETNS, uintptr(nsHandle), uintptr(nsType), 0)
-	if e1 != 0 {
-		err = e1
+	if err := setIptablesRules(masqueradeIp, netInterface, vethName); err != nil {
+		return err
 	}
-	return
+
+	if err := joinNsByName(nsName); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func AddNetNs(nsName string) {
+func joinNsByName(nsName string) error {
+	nsHandle, err := getFdFromPath(netnsDirectory + nsName)
+	if err != nil {
+		return errors.Wrapf(err, "Couldn't get fd of network namespace %q", nsName)
+	}
+	return setNs(nsHandle, syscall.CLONE_NEWNET)
+}
+
+func setNs(nsHandle int, nsType int) error {
+	if _, _, err := syscall.Syscall(SYS_SETNS, uintptr(nsHandle), uintptr(nsType), 0); err != 0 {
+		return errors.Wrap(err, "Couldn't set network namespace")
+	}
+	return nil
+}
+
+func AddNetNs(nsName string) error {
 
 	if netNsExists(nsName) {
-		return
+		return nil
 	}
 
-	cmd := exec.Command("ip", "netns", "add", nsName)
-	must(cmd.Run())
+	if err := exec.Command("ip", "netns", "add", nsName).Run(); err != nil {
+		return errors.Wrapf(err, "Couldn't add new network namespace %q", nsName)
+	}
+	return nil
 }
 
 // function return true if namespace exists
@@ -98,14 +122,16 @@ func netNsExists(nsName string) bool {
 	return stringInSlice(nsName, namespaces)
 }
 
-func addVethPair(vethName, vethPeerName string) {
+func addVethPair(vethName, vethPeerName string) error {
 
 	if netInterfaceExists(vethName) {
-		return
+		return nil
 	}
 
-	cmd := exec.Command("ip", "link", "add", vethName, "type", "veth", "peer", "name", vethPeerName)
-	must(cmd.Run())
+	if err := exec.Command("ip", "link", "add", vethName, "type", "veth", "peer", "name", vethPeerName).Run(); err != nil {
+		return errors.Wrapf(err, "Couldn't add veth pair of %q and %q", vethName, vethPeerName)
+	}
+	return nil
 }
 
 // function return true if Veth pair exists
@@ -129,9 +155,11 @@ func addIpInsideNs(Ip, vethName, nsName string) {
 	cmd.Run() //if fails, ip already exists
 }
 
-func setInterfaceUpInsideNs(vethName, nsName string) {
-	cmd := exec.Command("ip", "netns", "exec", nsName, "ip", "link", "set", vethName, "up")
-	must(cmd.Run())
+func setInterfaceUpInsideNs(vethName, nsName string) error {
+	if err := exec.Command("ip", "netns", "exec", nsName, "ip", "link", "set", vethName, "up").Run(); err != nil {
+		return errors.Wrapf(err, "Couldn't set interface %q up inside namespace %q", vethName, nsName)
+	}
+	return nil
 }
 
 func bridgeExists(bridgeName string) bool {
@@ -139,28 +167,36 @@ func bridgeExists(bridgeName string) bool {
 	return strings.Contains(out, bridgeName)
 }
 
-func createBridge(bridgeName string) {
+func createBridge(bridgeName string) error {
 	if bridgeExists(bridgeName) {
-		return
+		return nil
 	}
 
-	cmd := exec.Command("ip", "link", "add", "name", bridgeName, "type", "bridge")
-	must(cmd.Run())
+	if err := exec.Command("ip", "link", "add", "name", bridgeName, "type", "bridge").Run(); err != nil {
+		return errors.Wrapf(err, "Couldn't create bridge %q", bridgeName)
+	}
+	return nil
 }
 
-func setInterfaceUp(interfaceName string) {
-	cmd := exec.Command("ip", "link", "set", interfaceName, "up")
-	must(cmd.Run())
+func setInterfaceUp(interfaceName string) error {
+	if err := exec.Command("ip", "link", "set", interfaceName, "up").Run(); err != nil {
+		return errors.Wrapf(err, "Couldn't set interface %q up", interfaceName)
+	}
+	return nil
 }
 
-func addInterfaceToBridge(interfaceName, bridgeName string) {
-	cmd := exec.Command("ip", "link", "set", interfaceName, "master", bridgeName)
-	must(cmd.Run())
+func addInterfaceToBridge(interfaceName, bridgeName string) error {
+	if err := exec.Command("ip", "link", "set", interfaceName, "master", bridgeName).Run(); err != nil {
+		return errors.Wrapf(err, "Couldn't add bridge %q to interface %q", bridgeName, interfaceName)
+	}
+	return nil
 }
 
-func addBridgeIp(bridgeName, Ip string) {
-	cmd := exec.Command("ip", "addr", "add", Ip, "brd", "+", "dev", bridgeName)
-	must(cmd.Run())
+func addBridgeIp(bridgeName, Ip string) error {
+	if err := exec.Command("ip", "addr", "add", Ip, "brd", "+", "dev", bridgeName).Run(); err != nil {
+		return errors.Wrapf(err, "Couldn't add ip %q to bridge %q", Ip, bridgeName)
+	}
+	return nil
 }
 
 func addDefaultGateway(nsName, Ip string) {
@@ -168,31 +204,43 @@ func addDefaultGateway(nsName, Ip string) {
 	cmd.Run() // if fails, route already exists
 }
 
-func setIptablesRules(masqueradeIp, netInterface, vethName string) {
-	// Flush forward rules, policy DROP by default.
-	cmd := exec.Command("iptables", "-P", "FORWARD", "DROP")
-	must(cmd.Run())
-	cmd = exec.Command("iptables", "-F", "FORWARD")
-	must(cmd.Run())
+func setIptablesRules(masqueradeIp, netInterface, vethName string) error {
+	// Policy DROP by default.
+	if err := exec.Command("iptables", "-P", "FORWARD", "DROP").Run(); err != nil {
+		return errors.Wrap(err, "Couldn't policy DROP by default")
+	}
+
+	// Flush forward rules,
+	if err := exec.Command("iptables", "-F", "FORWARD").Run(); err != nil {
+		return errors.Wrap(err, "Couldn't flush forward rules")
+	}
 
 	// Flush nat rules.
-	cmd = exec.Command("iptables", "-t", "nat", "-F")
-	must(cmd.Run())
+	if err := exec.Command("iptables", "-t", "nat", "-F").Run(); err != nil {
+		return errors.Wrap(err, "Couldn't Flush nat rules")
+	}
 
 	// allow masquerading
-	cmd = exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", masqueradeIp, "-o", netInterface, "-j", "MASQUERADE")
-	must(cmd.Run())
+	if err := exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", masqueradeIp, "-o", netInterface, "-j", "MASQUERADE").Run(); err != nil {
+		return errors.Wrap(err, "Couldn't allow masquerading")
+	}
 
 	// Allow forwarding between net interface and veth interface
-	cmd = exec.Command("iptables", "-A", "FORWARD", "-i", netInterface, "-o", vethName, "-j", "ACCEPT")
-	must(cmd.Run())
-	cmd = exec.Command("iptables", "-A", "FORWARD", "-o", netInterface, "-i", vethName, "-j", "ACCEPT")
-	must(cmd.Run())
+	if err := exec.Command("iptables", "-A", "FORWARD", "-i", netInterface, "-o", vethName, "-j", "ACCEPT").Run(); err != nil {
+		return errors.Wrapf(err, "Couldn't allow forwarding from net interface %q to veth interface %q", netInterface, vethName)
+	}
+	if err := exec.Command("iptables", "-A", "FORWARD", "-o", netInterface, "-i", vethName, "-j", "ACCEPT").Run(); err != nil {
+		return errors.Wrapf(err, "Couldn't allow forwarding from veth interface %q to net interface %q", netInterface, vethName)
+	}
+
+	return nil
 }
 
-func enableIpv4Forwarding() {
-	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
-	must(cmd.Run())
+func enableIpv4Forwarding() error {
+	if err := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1").Run(); err != nil {
+		return errors.Wrap(err, "Couldn't enable ipv4 forwarding")
+	}
+	return nil
 }
 
 func connectedInterfaceName() (string, error) {
@@ -204,7 +252,7 @@ func connectedInterfaceName() (string, error) {
 			return words[ipRouteNameIndex], nil
 		}
 	}
-	return "", errors.New("Not connected to internet")
+	return "", errors.New("Not connected to the internet")
 }
 
 // https://play.golang.org/p/BDt3qEQ_2H
@@ -246,7 +294,7 @@ func localIP() (string, error) {
 			return ip.String() + "/" + getIp(mask), nil
 		}
 	}
-	return "", errors.New("are you connected to the network?")
+	return "", errors.New("Couldn't get local IP")
 }
 
 // returns Ip given subnet mask

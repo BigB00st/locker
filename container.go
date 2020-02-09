@@ -85,7 +85,9 @@ func parent() {
 		}
 	}()
 
-	defer createNetConnectivity()
+	if err := createNetConnectivity(); err != nil {
+		fmt.Println(err, " - internet connectivity will be disabled")
+	}
 
 	must(cmd.Start())
 
