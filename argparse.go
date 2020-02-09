@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -8,7 +11,7 @@ import (
 func parseArgs() {
 	// generic
 	pflag.String("name", "locker", "Name of container (used in hostname and more)")
-	pflag.String("path", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", "Path env variable")
+	pflag.String("path", linuxDefaultPATH, "Path env variable")
 
 	// cgroups
 	pflag.String("memory-limit", "1GB", "RAM limit of container in bytes")
@@ -26,21 +29,61 @@ func parseArgs() {
 	pflag.Parse()
 }
 
-func bindFlagsToConfig() {
+func bindFlagsToConfig() error {
 	// generic
-	viper.BindPFlag("name", pflag.Lookup("name"))
-	viper.BindPFlag("path", pflag.Lookup("path"))
+	err := bindFlagToConfig("name", "name")
+	if err != nil {
+		return err
+	}
+	err = bindFlagToConfig("path", "path")
+	if err != nil {
+		return err
+	}
 
 	// cgroups
-	viper.BindPFlag("cgroups.memory-limit", pflag.Lookup("memory-limit"))
-	viper.BindPFlag("cgroups.memory-swappiness", pflag.Lookup("memory-swappiness"))
-	viper.BindPFlag("cgroups.cpus-allowed", pflag.Lookup("cpus-allowed"))
+	err = bindFlagToConfig("cgroups.memory-limit", "memory-limit")
+	if err != nil {
+		return err
+	}
+	err = bindFlagToConfig("cgroups.memory-swappiness", "memory-swappiness")
+	if err != nil {
+		return err
+	}
+	err = bindFlagToConfig("cgroups.cpus-allowed", "cpus-allowed")
+	if err != nil {
+		return err
+	}
 
 	// network
-	viper.BindPFlag("network.network", pflag.Lookup("network"))
+	err = bindFlagToConfig("network.network", "network")
+	if err != nil {
+		return err
+	}
 
 	// security
-	viper.BindPFlag("security.seccomp", pflag.Lookup("seccomp"))
-	viper.BindPFlag("security.aa-profile-name", pflag.Lookup("aa-profile-name"))
-	viper.BindPFlag("security.aa-template", pflag.Lookup("aa-template"))
+	err = bindFlagToConfig("security.seccomp", "seccomp")
+	if err != nil {
+		return err
+	}
+	err = bindFlagToConfig("security.aa-profile-name", "aa-profile-name")
+	if err != nil {
+		return err
+	}
+	err = bindFlagToConfig("security.aa-template", "aa-profile-name")
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func bindFlagToConfig(configName, flagName string) error {
+	flag := pflag.Lookup(flagName)
+	if flag == nil {
+		return fmt.Errorf("flag given for %q is nil", flagName)
+	}
+	err := viper.BindPFlag(configName, flag)
+	if err != nil {
+		return errors.Wrapf(err, "Couldn't bind flag %q to %q", flagName, configName)
+	}
+	return nil
 }

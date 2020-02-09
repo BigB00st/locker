@@ -7,15 +7,22 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 // Usage: ./locker command args...
 func main() {
-	readConfig()
+	err := readConfig()
+	if err != nil {
+		panic(err)
+	}
 	parseArgs()
-	bindFlagsToConfig()
+	err = bindFlagsToConfig()
+	if err != nil {
+		panic(err)
+	}
 
 	if os.Geteuid() != 0 {
 		fmt.Println("Please run as root")
@@ -37,11 +44,20 @@ func main() {
 // Parent function, forks and execs child, which runs the requested command
 func parent() {
 	// drop most capabilites
-	setCaps(setupCapabilites)
+	err := setCaps(setupCapabilites)
+	if err != nil {
+		panic(err)
+	}
 
 	if apparmorEnabled() {
-		if err := InstallProfile(); err == nil {
-			defer UnloadProfile(viper.GetString("aa-profile-path"))
+		if err := InstallProfile(); err != nil {
+			panic(err)
+		} else {
+			defer func() {
+				if err := UnloadProfile(viper.GetString("aa-profile-path")); err != nil {
+					panic(err)
+				}
+			}()
 		}
 	}
 
@@ -60,17 +76,39 @@ func parent() {
 	}
 
 	//configure cgroups
-	CgInit()
-	defer CgDestruct()
+	err = CgInit()
+	if err != nil {
+		cgerr := CgDestruct()
+		if cgerr != nil {
+			fmt.Println(cgerr)
+		}
+		panic(err)
+	}
 
-	createNetConnectivity()
+	//Delete new cgroups at the end
+	defer func() {
+		if err := CgDestruct(); err != nil {
+			panic(err)
+		}
+	}()
 
-	must(cmd.Start())
+	if err := createNetConnectivity(); err != nil {
+		fmt.Println(err, " - internet connectivity will be disabled")
+	}
+
+	if err := cmd.Start(); err != nil {
+		panic(errors.Wrap(err, "Couldn't start child"))
+	}
 
 	fmt.Println("Child PID:", cmd.Process.Pid)
-	CgRemoveSelf()
+	err = CgRemoveSelf()
+	if err != nil {
+		panic(err)
+	}
 
-	cmd.Wait()
+	if err = cmd.Wait(); err != nil {
+		panic(errors.Wrap(err, "Child failed"))
+	}
 }
 
 // Child process, runs requested command
@@ -81,30 +119,42 @@ func child() {
 	//command to run
 	cmd := exec.Command(nonFlagArgs[0], nonFlagArgs[1:]...)
 
-	syscallsWhitelist := readSeccompProfile(viper.GetString("security.seccomp"))
+	syscallsWhitelist, err := readSeccompProfile(viper.GetString("security.seccomp"))
+	if err != nil {
+		panic(err)
+	}
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	must(syscall.Sethostname([]byte(viper.GetString("name"))))
-	must(syscall.Chroot(fsPath))
-	os.Setenv("PATH", viper.GetString("path"))
-	must(os.Chdir("/root"))
+	if err := syscall.Sethostname([]byte(viper.GetString("name"))); err != nil {
+		panic(errors.Wrap(err, "Couldn't set child's Hostname"))
+	}
+	if err := syscall.Chroot(fsPath); err != nil {
+		panic(errors.Wrap(err, "Couldn't change root into container"))
+	}
+	if err := os.Setenv("PATH", viper.GetString("path")); err != nil {
+		panic(errors.Wrap(err, "Couldn't set PATH environment variable"))
+	}
+	if err := os.Chdir("/root"); err != nil {
+		panic(errors.Wrap(err, "Coldn't change directory"))
+	}
 
 	// mount proc for pids
-	must(syscall.Mount("proc", "/proc", "proc", 0, ""))
+	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
+		panic(errors.Wrap(err, "Coudn't bind /proc"))
+	}
 
-	scmpFilter := createScmpFilter(syscallsWhitelist)
-	defer scmpFilter.Release()
-	setCaps(containerCapabilites)
-
-	cmd.Run()
-}
-
-func must(err error) {
+	scmpFilter, err := createScmpFilter(syscallsWhitelist)
 	if err != nil {
 		panic(err)
 	}
+	defer scmpFilter.Release()
+	if err := setCaps(containerCapabilites); err != nil {
+		panic(errors.Wrap(err, "Couldn't set capabilites of child"))
+	}
+
+	_ = cmd.Run()
 }
