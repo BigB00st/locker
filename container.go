@@ -7,6 +7,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -95,7 +96,9 @@ func parent() {
 		fmt.Println(err, " - internet connectivity will be disabled")
 	}
 
-	must(cmd.Start())
+	if err := cmd.Start(); err != nil {
+		panic(errors.Wrap(err, "Couldn't start child"))
+	}
 
 	fmt.Println("Child PID:", cmd.Process.Pid)
 	err = CgRemoveSelf()
@@ -103,7 +106,9 @@ func parent() {
 		panic(err)
 	}
 
-	cmd.Wait()
+	if err = cmd.Wait(); err != nil {
+		panic(errors.Wrap(err, "Child failed"))
+	}
 }
 
 // Child process, runs requested command
@@ -124,26 +129,32 @@ func child() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	must(syscall.Sethostname([]byte(viper.GetString("name"))))
-	must(syscall.Chroot(fsPath))
-	os.Setenv("PATH", viper.GetString("path"))
-	must(os.Chdir("/root"))
+	if err := syscall.Sethostname([]byte(viper.GetString("name"))); err != nil {
+		panic(errors.Wrap(err, "Couldn't set child's Hostname"))
+	}
+	if err := syscall.Chroot(fsPath); err != nil {
+		panic(errors.Wrap(err, "Couldn't change root into container"))
+	}
+	if err := os.Setenv("PATH", viper.GetString("path")); err != nil {
+		panic(errors.Wrap(err, "Couldn't set PATH environment variable"))
+	}
+	if err := os.Chdir("/root"); err != nil {
+		panic(errors.Wrap(err, "Coldn't change directory"))
+	}
 
 	// mount proc for pids
-	must(syscall.Mount("proc", "/proc", "proc", 0, ""))
+	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
+		panic(errors.Wrap(err, "Coudn't bind /proc"))
+	}
 
 	scmpFilter, err := createScmpFilter(syscallsWhitelist)
 	if err != nil {
 		panic(err)
 	}
 	defer scmpFilter.Release()
-	setCaps(containerCapabilites)
-
-	cmd.Run()
-}
-
-func must(err error) {
-	if err != nil {
-		panic(err)
+	if err := setCaps(containerCapabilites); err != nil {
+		panic(errors.Wrap(err, "Couldn't set capabilites of child"))
 	}
+
+	_ = cmd.Run()
 }
