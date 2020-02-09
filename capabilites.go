@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/pkg/errors"
 	"github.com/syndtr/gocapability/capability"
 )
 
@@ -51,11 +52,17 @@ var containerCapabilites []capability.Cap = []capability.Cap{
 }
 
 // Function sets capabilites as only given list
-func setCaps(capList []capability.Cap) {
+func setCaps(capList []capability.Cap) error {
 	caps, err := capability.NewPid2(0)
-	must(err)
+	if err != nil {
+		return errors.Wrap(err, "Couldn't initialize a new Capabilities object")
+	}
 	for _, cur := range capList {
 		caps.Set(capability.CAPS|capability.BOUNDING, cur)
 	}
-	must(caps.Apply(capability.CAPS | capability.BOUNDING))
+	err = caps.Apply(capability.CAPS | capability.BOUNDING)
+	if err != nil {
+		return errors.Wrap(err, "Couldn't apply capabilities")
+	}
+	return nil
 }

@@ -43,7 +43,10 @@ func main() {
 // Parent function, forks and execs child, which runs the requested command
 func parent() {
 	// drop most capabilites
-	setCaps(setupCapabilites)
+	err := setCaps(setupCapabilites)
+	if err != nil {
+		panic(err)
+	}
 
 	if apparmorEnabled() {
 		if err := InstallProfile(); err == nil {
@@ -66,7 +69,7 @@ func parent() {
 	}
 
 	//configure cgroups
-	err := CgInit()
+	err = CgInit()
 	if err != nil {
 		cgerr := CgDestruct()
 		if err != nil {
