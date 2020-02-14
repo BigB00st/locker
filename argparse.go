@@ -31,46 +31,37 @@ func parseArgs() {
 
 func bindFlagsToConfig() error {
 	// generic
-	err := bindFlagToConfig("name", "name")
-	if err != nil {
+	if err := bindFlagToConfig("name", "name"); err != nil {
 		return err
 	}
-	err = bindFlagToConfig("path", "path")
-	if err != nil {
+	if err := bindFlagToConfig("path", "path"); err != nil {
 		return err
 	}
 
 	// cgroups
-	err = bindFlagToConfig("cgroups.memory-limit", "memory-limit")
-	if err != nil {
+	if err := bindFlagToConfig("cgroups.memory-limit", "memory-limit"); err != nil {
 		return err
 	}
-	err = bindFlagToConfig("cgroups.memory-swappiness", "memory-swappiness")
-	if err != nil {
+	if err := bindFlagToConfig("cgroups.memory-swappiness", "memory-swappiness"); err != nil {
 		return err
 	}
-	err = bindFlagToConfig("cgroups.cpus-allowed", "cpus-allowed")
-	if err != nil {
+	if err := bindFlagToConfig("cgroups.cpus-allowed", "cpus-allowed"); err != nil {
 		return err
 	}
 
 	// network
-	err = bindFlagToConfig("network.network", "network")
-	if err != nil {
+	if err := bindFlagToConfig("network.network", "network"); err != nil {
 		return err
 	}
 
 	// security
-	err = bindFlagToConfig("security.seccomp", "seccomp")
-	if err != nil {
+	if err := bindFlagToConfig("security.seccomp", "seccomp"); err != nil {
 		return err
 	}
-	err = bindFlagToConfig("security.aa-profile-name", "aa-profile-name")
-	if err != nil {
+	if err := bindFlagToConfig("security.aa-profile-name", "aa-profile-name"); err != nil {
 		return err
 	}
-	err = bindFlagToConfig("security.aa-template", "aa-profile-name")
-	if err != nil {
+	if err := bindFlagToConfig("security.aa-template", "aa-profile-name"); err != nil {
 		return err
 	}
 	return nil
@@ -81,8 +72,7 @@ func bindFlagToConfig(configName, flagName string) error {
 	if flag == nil {
 		return fmt.Errorf("flag given for %q is nil", flagName)
 	}
-	err := viper.BindPFlag(configName, flag)
-	if err != nil {
+	if err := viper.BindPFlag(configName, flag); err != nil {
 		return errors.Wrapf(err, "Couldn't bind flag %q to %q", flagName, configName)
 	}
 	return nil

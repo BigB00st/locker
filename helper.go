@@ -33,3 +33,8 @@ func cmdOut(binary string, arg ...string) (string, error) {
 
 	return string(output), nil
 }
+
+func printAndExit(a ...interface{}) {
+	fmt.Println(a...)
+	os.Exit(1)
+}

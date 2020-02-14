@@ -55,14 +55,14 @@ var containerCapabilites []capability.Cap = []capability.Cap{
 func setCaps(capList []capability.Cap) error {
 	caps, err := capability.NewPid2(0)
 	if err != nil {
-		return errors.Wrap(err, "Couldn't initialize a new Capabilities object")
+		return errors.Wrap(err, "couldn't initialize a new capabilities object")
 	}
 	for _, cur := range capList {
 		caps.Set(capability.CAPS|capability.BOUNDING, cur)
 	}
 	err = caps.Apply(capability.CAPS | capability.BOUNDING)
 	if err != nil {
-		return errors.Wrap(err, "Couldn't apply capabilities")
+		return errors.Wrap(err, "couldn't apply capabilities")
 	}
 	return nil
 }

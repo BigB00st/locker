@@ -16,46 +16,47 @@ import (
 func main() {
 	err := readConfig()
 	if err != nil {
-		panic(err)
+		printAndExit(err)
 	}
 	parseArgs()
 	err = bindFlagsToConfig()
 	if err != nil {
-		panic(err)
+		printAndExit(err)
 	}
 
 	if os.Geteuid() != 0 {
-		fmt.Println("Please run as root")
-		os.Exit(1)
+		printAndExit("Please run as root")
 	}
 
 	if len(pflag.Args()) < 1 {
-		fmt.Println("USAGE: command args...")
-		os.Exit(1)
+		printAndExit("USAGE: command args...")
 	}
 
 	if isChild() {
-		child()
-	} else {
-		parent()
+		if err := child(); err != nil {
+			printAndExit(err)
+		}
+	} else { //parent
+		if err := parent(); err != nil {
+			printAndExit(err)
+		}
 	}
 }
 
 // Parent function, forks and execs child, which runs the requested command
-func parent() {
+func parent() error {
 	// drop most capabilites
-	err := setCaps(setupCapabilites)
-	if err != nil {
-		panic(err)
+	if err := setCaps(setupCapabilites); err != nil {
+		return err
 	}
 
 	if apparmorEnabled() {
 		if err := InstallProfile(); err != nil {
-			panic(err)
+			return err
 		} else {
 			defer func() {
 				if err := UnloadProfile(viper.GetString("aa-profile-path")); err != nil {
-					panic(err)
+					printAndExit(err)
 				}
 			}()
 		}
@@ -76,19 +77,15 @@ func parent() {
 	}
 
 	//configure cgroups
-	err = CgInit()
-	if err != nil {
-		cgerr := CgDestruct()
-		if cgerr != nil {
-			fmt.Println(cgerr)
-		}
-		panic(err)
+	if err := CgInit(); err != nil {
+		CgDestruct()
+		return err
 	}
 
 	//Delete new cgroups at the end
 	defer func() {
 		if err := CgDestruct(); err != nil {
-			panic(err)
+			printAndExit(err)
 		}
 	}()
 
@@ -97,22 +94,24 @@ func parent() {
 	}
 
 	if err := cmd.Start(); err != nil {
-		panic(errors.Wrap(err, "Couldn't start child"))
+		return errors.Wrap(err, "couldn't start child")
 	}
 
 	fmt.Println("Child PID:", cmd.Process.Pid)
-	err = CgRemoveSelf()
-	if err != nil {
-		panic(err)
+
+	if err := CgRemoveSelf(); err != nil {
+		return err
 	}
 
-	if err = cmd.Wait(); err != nil {
-		panic(errors.Wrap(err, "Child failed"))
+	if err := cmd.Wait(); err != nil {
+		return errors.Wrap(err, "child failed")
 	}
+
+	return nil
 }
 
 // Child process, runs requested command
-func child() {
+func child() error {
 	nonFlagArgs := strings.Fields(pflag.Args()[0])
 	fmt.Printf("Running: %v\n", nonFlagArgs[0:])
 
@@ -121,7 +120,7 @@ func child() {
 
 	syscallsWhitelist, err := readSeccompProfile(viper.GetString("security.seccomp"))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	//pipe streams
@@ -130,31 +129,32 @@ func child() {
 	cmd.Stderr = os.Stderr
 
 	if err := syscall.Sethostname([]byte(viper.GetString("name"))); err != nil {
-		panic(errors.Wrap(err, "Couldn't set child's Hostname"))
+		return errors.Wrap(err, "couldn't set child's hostname")
 	}
 	if err := syscall.Chroot(fsPath); err != nil {
-		panic(errors.Wrap(err, "Couldn't change root into container"))
+		return errors.Wrap(err, "couldn't change root into container")
 	}
 	if err := os.Setenv("PATH", viper.GetString("path")); err != nil {
-		panic(errors.Wrap(err, "Couldn't set PATH environment variable"))
+		return errors.Wrap(err, "couldn't set PATH environment variable")
 	}
 	if err := os.Chdir("/root"); err != nil {
-		panic(errors.Wrap(err, "Coldn't change directory"))
+		return errors.Wrap(err, "couldn't change directory")
 	}
 
 	// mount proc for pids
 	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
-		panic(errors.Wrap(err, "Coudn't bind /proc"))
+		return errors.Wrap(err, "couldn't mount /proc")
 	}
 
 	scmpFilter, err := createScmpFilter(syscallsWhitelist)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer scmpFilter.Release()
 	if err := setCaps(containerCapabilites); err != nil {
-		panic(errors.Wrap(err, "Couldn't set capabilites of child"))
+		return errors.Wrap(err, "couldn't set capabilites of child")
 	}
+	cmd.Run()
 
-	_ = cmd.Run()
+	return nil
 }

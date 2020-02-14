@@ -24,20 +24,20 @@ func apparmorEnabled() bool {
 // replace the profile. The `-K` is necessary to make sure that apparmor_parser
 // doesn't try to write to a read-only filesystem.
 func LoadProfile(profilePath string) error {
-	err := exec.Command("apparmor_parser", "-Kr", profilePath).Run()
-	return err
+	if err := exec.Command("apparmor_parser", "-Kr", profilePath).Run(); err != nil {
+		return errors.Wrap(err, "error loading apparmor profile")
+	}
+	return nil
 }
 
 // LoadProfile runs `apparmor_parser -R` on a specified apparmor profile to
 // unload the profile.
 func UnloadProfile(profilePath string) error {
-	err := exec.Command("apparmor_parser", "-R", profilePath).Run()
-	if err != nil {
-		return errors.Wrap(err, "Call of 'apparmor_parser -R' failed")
+	if err := exec.Command("apparmor_parser", "-R", profilePath).Run(); err != nil {
+		return errors.Wrap(err, "error unloading apparmor profile")
 	}
-	err = os.Remove(profilePath)
-	if err != nil {
-		return errors.Wrap(err, "Couldn't remove apparmor tempfile")
+	if err := os.Remove(profilePath); err != nil {
+		return errors.Wrap(err, "couldn't remove apparmor tempfile")
 	}
 	return nil
 }
@@ -46,20 +46,18 @@ func UnloadProfile(profilePath string) error {
 func InstallProfile() error {
 	f, err := ioutil.TempFile("", viper.GetString("security.aa-profile-name"))
 	if err != nil {
-		return errors.Wrap(err, "Couldn't generate temp apparmor file")
+		return errors.Wrap(err, "couldn't generate temp apparmor file")
 	}
 	defer f.Close()
 
 	profilePath := f.Name()
 	viper.Set("aa-profile-path", profilePath)
 
-	err = GenerateProfile(f)
-	if err != nil {
-		return errors.Wrap(err, "Couldn't Generate apparmor profile")
+	if err := GenerateProfile(f); err != nil {
+		return errors.Wrap(err, "couldn't generate apparmor profile")
 	}
-	err = LoadProfile(profilePath)
-	if err != nil {
-		return errors.Wrap(err, "Couldn't load apparmor profile")
+	if err := LoadProfile(profilePath); err != nil {
+		return errors.Wrap(err, "couldn't load apparmor profile")
 	}
 	return nil
 }

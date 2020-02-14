@@ -14,8 +14,7 @@ func readConfig() error {
 	viper.SetConfigType("toml")
 	viper.AddConfigPath("/etc/locker/")
 	viper.AddConfigPath(".") // Checks in current directory, Only for debugging purposes
-	err := viper.ReadInConfig()
-	if err != nil {
+	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok { //ignore config file not found
 			return errors.Wrapf(err, "Error while reading %q config file", configFile)
 		}
