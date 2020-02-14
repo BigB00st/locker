@@ -7,9 +7,6 @@
 $EXECUTABLE flags=(attach_disconnected) {
   #include <abstractions/base>
 
-  deny capability setpcap,
-  deny capability sys_module,
-
   capability dac_override,
   capability dac_read_search,
   capability mac_admin,
@@ -20,10 +17,7 @@ $EXECUTABLE flags=(attach_disconnected) {
   capability sys_chroot,
   capability sys_nice,
 
-  network inet icmp,
-  network inet tcp,
-  network inet udp,
-
+  network,
   mount,
 
   $TEMP-FILE rw,

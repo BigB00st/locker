@@ -131,14 +131,17 @@ func child() error {
 	if err := syscall.Sethostname([]byte(viper.GetString("name"))); err != nil {
 		return errors.Wrap(err, "couldn't set child's hostname")
 	}
-	if err := syscall.Chroot(fsPath); err != nil {
+	if err := syscall.Chdir(fsPath); err != nil {
+		return errors.Wrap(err, "couldn't changedir into container")
+	}
+	if err := syscall.Chroot("."); err != nil {
 		return errors.Wrap(err, "couldn't change root into container")
 	}
 	if err := os.Setenv("PATH", viper.GetString("path")); err != nil {
 		return errors.Wrap(err, "couldn't set PATH environment variable")
 	}
 	if err := os.Chdir("/root"); err != nil {
-		return errors.Wrap(err, "couldn't change directory")
+		return errors.Wrap(err, "couldn't change directory to /root in container")
 	}
 
 	// mount proc for pids

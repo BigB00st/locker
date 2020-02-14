@@ -46,9 +46,8 @@ var setupCapabilites []capability.Cap = []capability.Cap{
 }
 
 var containerCapabilites []capability.Cap = []capability.Cap{
-	capability.CAP_NET_ADMIN,        //needed for network
-	capability.CAP_NET_BIND_SERVICE, //needed for port binding (<1024)
-	capability.CAP_NET_RAW,          //needed for network
+	capability.CAP_NET_ADMIN, //needed for network
+	capability.CAP_NET_RAW,   //needed for network
 }
 
 // Function sets capabilites as only given list
