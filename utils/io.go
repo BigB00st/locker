@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"os"
@@ -6,7 +6,7 @@ import (
 )
 
 // returns file descriptor from path
-func getFdFromPath(path string) (int, error) {
+func GetFdFromPath(path string) (int, error) {
 	fd, err := syscall.Open(path, syscall.O_RDONLY, 0)
 	if err != nil {
 		return -1, err
@@ -15,7 +15,7 @@ func getFdFromPath(path string) (int, error) {
 }
 
 // returns true if file exists
-func fileExists(filePath string) bool {
+func FileExists(filePath string) bool {
 	_, err := os.Stat(filePath)
 	return !os.IsNotExist(err)
 }

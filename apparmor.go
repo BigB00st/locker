@@ -8,11 +8,12 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"gitlab.com/bigboost/locker/utils"
 )
 
 // Function returns true if apparmor is enabled
 func apparmorEnabled() bool {
-	enabled, err := cmdOut("aa-enabled")
+	enabled, err := utils.CmdOut("aa-enabled")
 	if err != nil {
 		return false
 	}

@@ -11,35 +11,37 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gitlab.com/bigboost/locker/cgroups"
+	"gitlab.com/bigboost/locker/network"
+	"gitlab.com/bigboost/locker/utils"
 )
 
 // Usage: ./locker command args...
 func main() {
 	err := readConfig()
 	if err != nil {
-		printAndExit(err)
+		utils.PrintAndExit(err)
 	}
 	parseArgs()
 	err = bindFlagsToConfig()
 	if err != nil {
-		printAndExit(err)
+		utils.PrintAndExit(err)
 	}
 
 	if os.Geteuid() != 0 {
-		printAndExit("Please run as root")
+		utils.PrintAndExit("Please run as root")
 	}
 
 	if len(pflag.Args()) < 1 {
-		printAndExit("USAGE: command args...")
+		utils.PrintAndExit("USAGE: command args...")
 	}
 
-	if isChild() {
+	if utils.IsChild() {
 		if err := child(); err != nil {
-			printAndExit(err)
+			utils.PrintAndExit(err)
 		}
 	} else { //parent
 		if err := parent(); err != nil {
-			printAndExit(err)
+			utils.PrintAndExit(err)
 		}
 	}
 }
@@ -57,7 +59,7 @@ func parent() error {
 		} else {
 			defer func() {
 				if err := UnloadProfile(viper.GetString("aa-profile-path")); err != nil {
-					printAndExit(err)
+					utils.PrintAndExit(err)
 				}
 			}()
 		}
@@ -86,11 +88,11 @@ func parent() error {
 	//Delete new cgroups at the end
 	defer func() {
 		if err := cgroups.CgDestruct(); err != nil {
-			printAndExit(err)
+			utils.PrintAndExit(err)
 		}
 	}()
 
-	if err := createNetConnectivity(); err != nil {
+	if err := network.CreateNetConnectivity(); err != nil {
 		fmt.Println(err, " - internet connectivity will be disabled")
 	}
 

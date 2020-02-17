@@ -1,4 +1,4 @@
-package main
+package network
 
 import (
 	"net"
@@ -10,6 +10,16 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"gitlab.com/bigboost/locker/utils"
+)
+
+const (
+	subnetMaskBytes     = 4
+	subnetLogicOne      = 255
+	bitsInByte          = 8
+	ipRouteDefaultIndex = 0
+	ipRouteNameIndex    = 4
+	netnsDirectory      = "/var/run/netns/"
 )
 
 // SYS_SETNS syscall allows changing the namespace of the current process.
@@ -27,7 +37,7 @@ var SYS_SETNS = map[string]uintptr{
 	"s390x":    339,
 }[runtime.GOARCH]
 
-func createNetConnectivity() error {
+func CreateNetConnectivity() error {
 	nsName := "lockerNs"
 	vethName := "v-locker"
 	vethPeerName := "v-locker-peer"
@@ -42,7 +52,7 @@ func createNetConnectivity() error {
 	}
 
 	// create network namespace
-	if err := AddNetNs(nsName); err != nil {
+	if err := addNetNs(nsName); err != nil {
 		return err
 	}
 
@@ -90,7 +100,7 @@ func createNetConnectivity() error {
 }
 
 func joinNsByName(nsName string) error {
-	nsHandle, err := getFdFromPath(netnsDirectory + nsName)
+	nsHandle, err := utils.GetFdFromPath(netnsDirectory + nsName)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't get fd of network namespace %q", nsName)
 	}
@@ -104,7 +114,7 @@ func setNs(nsHandle int, nsType int) error {
 	return nil
 }
 
-func AddNetNs(nsName string) error {
+func addNetNs(nsName string) error {
 
 	if netNsExists(nsName) {
 		return nil
@@ -118,7 +128,7 @@ func AddNetNs(nsName string) error {
 
 // function return true if namespace exists
 func netNsExists(nsName string) bool {
-	return fileExists(filepath.Join(netnsDirectory, nsName))
+	return utils.FileExists(filepath.Join(netnsDirectory, nsName))
 }
 
 func addVethPair(vethName, vethPeerName string) error {
@@ -135,7 +145,7 @@ func addVethPair(vethName, vethPeerName string) error {
 
 // function return true if Veth pair exists
 func netInterfaceExists(vethName string) bool {
-	out, _ := cmdOut("ip", "link", "list")
+	out, _ := utils.CmdOut("ip", "link", "list")
 	return strings.Contains(out, vethName+"@")
 }
 
@@ -162,7 +172,7 @@ func setInterfaceUpInsideNs(vethName, nsName string) error {
 }
 
 func bridgeExists(bridgeName string) bool {
-	out, _ := cmdOut("ip", "link", "list", "type", "bridge")
+	out, _ := utils.CmdOut("ip", "link", "list", "type", "bridge")
 	return strings.Contains(out, bridgeName)
 }
 
@@ -243,7 +253,7 @@ func enableIpv4Forwarding() error {
 }
 
 func connectedInterfaceName() (string, error) {
-	out, _ := cmdOut("ip", "-4", "route", "ls")
+	out, _ := utils.CmdOut("ip", "-4", "route", "ls")
 
 	for _, line := range strings.Split(out, "\n") {
 		words := strings.Split(line, " ")

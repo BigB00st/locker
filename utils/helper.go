@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"fmt"
@@ -8,12 +8,12 @@ import (
 )
 
 // Child is created in a new pid namespace, so it will gain pid 1
-func isChild() bool {
+func IsChild() bool {
 	return os.Getpid() == 1
 }
 
 // Function returns true if given string is in given list of strings
-func stringInSlice(str string, list []string) bool {
+func StringInSlice(str string, list []string) bool {
 	for _, curStr := range list {
 		if strings.Contains(curStr, str) {
 			return true
@@ -23,7 +23,7 @@ func stringInSlice(str string, list []string) bool {
 }
 
 // function runs command and return output as string
-func cmdOut(binary string, arg ...string) (string, error) {
+func CmdOut(binary string, arg ...string) (string, error) {
 	c := exec.Command(binary, arg...)
 
 	output, err := c.CombinedOutput()
@@ -34,7 +34,7 @@ func cmdOut(binary string, arg ...string) (string, error) {
 	return string(output), nil
 }
 
-func printAndExit(a ...interface{}) {
+func PrintAndExit(a ...interface{}) {
 	fmt.Println(a...)
 	os.Exit(1)
 }
