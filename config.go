@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"gitlab.com/bigboost/locker/cgroups"
 )
 
 func readConfig() error {
@@ -20,9 +21,9 @@ func readConfig() error {
 		}
 	}
 	viper.Set("cgroups.name", "locker"+strconv.Itoa(os.Getpid()))
-	viper.Set("cgroups.cpuset-path", path.Join(cgroupPath, cgroupCPUSet, viper.GetString("cgroups.name")))
-	viper.Set("cgroups.cpuset-root-path", path.Join(cgroupPath, cgroupCPUSet))
-	viper.Set("cgroups.memory-path", path.Join(cgroupPath, cgroupMemory, viper.GetString("cgroups.name")))
-	viper.Set("cgroups.memory-root-path", path.Join(cgroupPath, cgroupMemory))
+	viper.Set("cgroups.cpuset-path", path.Join(cgroups.BasePath, cgroups.CPUSetPath, viper.GetString("cgroups.name")))
+	viper.Set("cgroups.cpuset-root-path", path.Join(cgroups.BasePath, cgroups.CPUSetPath))
+	viper.Set("cgroups.memory-path", path.Join(cgroups.BasePath, cgroups.MemoryPath, viper.GetString("cgroups.name")))
+	viper.Set("cgroups.memory-root-path", path.Join(cgroups.BasePath, cgroups.MemoryPath))
 	return nil
 }

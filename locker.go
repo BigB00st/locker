@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"gitlab.com/bigboost/locker/cgroups"
 )
 
 // Usage: ./locker command args...
@@ -77,14 +78,14 @@ func parent() error {
 	}
 
 	//configure cgroups
-	if err := CgInit(); err != nil {
-		CgDestruct()
+	if err := cgroups.CgInit(); err != nil {
+		cgroups.CgDestruct()
 		return err
 	}
 
 	//Delete new cgroups at the end
 	defer func() {
-		if err := CgDestruct(); err != nil {
+		if err := cgroups.CgDestruct(); err != nil {
 			printAndExit(err)
 		}
 	}()
@@ -99,7 +100,7 @@ func parent() error {
 
 	fmt.Println("Child PID:", cmd.Process.Pid)
 
-	if err := CgRemoveSelf(); err != nil {
+	if err := cgroups.CgRemoveSelf(); err != nil {
 		return err
 	}
 

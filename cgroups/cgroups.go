@@ -1,4 +1,4 @@
-package main
+package cgroups
 
 import (
 	"io/ioutil"
@@ -10,6 +10,18 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+)
+
+const (
+	BasePath        = "/sys/fs/cgroup/"
+	MemoryPath      = "memory"
+	CPUSetPath      = "cpuset" //Need to decide if we also want cpu control
+	swapinessFile   = "memory.swappiness"
+	byteLimitFile   = "memory.limit_in_bytes"
+	selfMinMemory   = 5000000 //required for loading the parent
+	cpusetLimitFile = "cpuset.cpus"
+	cpusetMemFile   = "cpuset.mems"
+	procsFile       = "cgroup.procs"
 )
 
 //cgroup function, limits recourse usage of process
