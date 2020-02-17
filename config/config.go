@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"os"
@@ -9,6 +9,21 @@ import (
 	"github.com/spf13/viper"
 	"gitlab.com/bigboost/locker/cgroups"
 )
+
+const configFile = "config.toml"
+const linuxDefaultPATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+func LoadConfig() error {
+	if err := readConfig(); err != nil {
+		return errors.Wrap(err, "couldn't read config file.")
+	}
+	parseArgs()
+	if err := bindFlagsToConfig(); err != nil {
+		return errors.Wrap(err, "couldn't bind flags to config")
+	}
+
+	return nil
+}
 
 func readConfig() error {
 	viper.SetConfigName(configFile) // name of config file (without extension)

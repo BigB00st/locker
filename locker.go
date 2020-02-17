@@ -11,19 +11,14 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gitlab.com/bigboost/locker/cgroups"
+	"gitlab.com/bigboost/locker/config"
 	"gitlab.com/bigboost/locker/network"
 	"gitlab.com/bigboost/locker/utils"
 )
 
 // Usage: ./locker command args...
 func main() {
-	err := readConfig()
-	if err != nil {
-		utils.PrintAndExit(err)
-	}
-	parseArgs()
-	err = bindFlagsToConfig()
-	if err != nil {
+	if err := config.LoadConfig(); err != nil {
 		utils.PrintAndExit(err)
 	}
 
