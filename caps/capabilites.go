@@ -1,11 +1,11 @@
-package main
+package caps
 
 import (
 	"github.com/pkg/errors"
 	"github.com/syndtr/gocapability/capability"
 )
 
-var setupCapabilites []capability.Cap = []capability.Cap{
+var SetupCapabilites []capability.Cap = []capability.Cap{
 	//capability.CAP_AUDIT_CONTROL,
 	//capability.CAP_AUDIT_READ,
 	//capability.CAP_AUDIT_WRITE,
@@ -45,13 +45,13 @@ var setupCapabilites []capability.Cap = []capability.Cap{
 	//capability.CAP_WAKE_ALARM,
 }
 
-var containerCapabilites []capability.Cap = []capability.Cap{
+var ContainerCapabilites []capability.Cap = []capability.Cap{
 	capability.CAP_NET_ADMIN, //needed for network
 	capability.CAP_NET_RAW,   //needed for network
 }
 
 // Function sets capabilites as only given list
-func setCaps(capList []capability.Cap) error {
+func SetCaps(capList []capability.Cap) error {
 	caps, err := capability.NewPid2(0)
 	if err != nil {
 		return errors.Wrap(err, "couldn't initialize a new capabilities object")

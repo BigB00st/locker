@@ -37,7 +37,7 @@ var SYS_SETNS = map[string]uintptr{
 	"s390x":    339,
 }[runtime.GOARCH]
 
-func CreateNetConnectivity() error {
+func CreateConnectivity() error {
 	nsName := "lockerNs"
 	vethName := "v-locker"
 	vethPeerName := "v-locker-peer"

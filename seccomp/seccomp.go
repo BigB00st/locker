@@ -1,4 +1,4 @@
-package main
+package seccomp
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	libseccomp "github.com/seccomp/libseccomp-golang"
 )
 
-func readSeccompProfile(path string) ([]string, error) {
+func ReadProfile(path string) ([]string, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't read seccomp profile")
@@ -26,7 +26,7 @@ func readSeccompProfile(path string) ([]string, error) {
 	return result["syscalls"], nil
 }
 
-func createScmpFilter(syscalls []string) (*libseccomp.ScmpFilter, error) {
+func CreateFilter(syscalls []string) (*libseccomp.ScmpFilter, error) {
 	// blacklist everything (EPERM - Permission not permitted)
 	scmpFilter, err := libseccomp.NewFilter(libseccomp.ActErrno.SetReturnCode(int16(syscall.EPERM)))
 	if err != nil {

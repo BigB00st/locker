@@ -25,7 +25,7 @@ const (
 )
 
 //cgroup function, limits recourse usage of process
-func CgInit() error {
+func Init() error {
 	cpusAllowed := viper.GetString("cgroups.cpus-allowed")
 	bytesLimit, err := bytefmt.ToBytes(viper.GetString("cgroups.memory-limit"))
 	if err != nil {
@@ -81,7 +81,7 @@ func CgInit() error {
 	return nil
 }
 
-func CgRemoveSelf() error {
+func RemoveSelf() error {
 	//assign self to root memory cgroup
 	if err := ioutil.WriteFile(path.Join(viper.GetString("cgroups.memory-root-path"), procsFile), []byte("0"), 0700); err != nil {
 		return errors.Wrap(err, "couldn't assign parent process to root memory cgroup")
@@ -102,7 +102,7 @@ func CgRemoveSelf() error {
 }
 
 //cgroup function, limits recourse usage of process
-func CgDestruct() error {
+func Destruct() error {
 	if err := syscall.Rmdir(viper.GetString("cgroups.memory-path")); err != nil {
 		return errors.Wrap(err, "couldn't remove memory cgroup directory")
 	}

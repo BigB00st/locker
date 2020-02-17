@@ -1,4 +1,4 @@
-package main
+package apparmor
 
 import (
 	"io/ioutil"
@@ -12,7 +12,7 @@ import (
 )
 
 // Function returns true if apparmor is enabled
-func apparmorEnabled() bool {
+func Enabled() bool {
 	enabled, err := utils.CmdOut("aa-enabled")
 	if err != nil {
 		return false
@@ -24,7 +24,7 @@ func apparmorEnabled() bool {
 // LoadProfile runs `apparmor_parser -Kr` on a specified apparmor profile to
 // replace the profile. The `-K` is necessary to make sure that apparmor_parser
 // doesn't try to write to a read-only filesystem.
-func LoadProfile(profilePath string) error {
+func loadProfile(profilePath string) error {
 	if err := exec.Command("apparmor_parser", "-Kr", profilePath).Run(); err != nil {
 		return errors.Wrap(err, "error loading apparmor profile")
 	}
@@ -54,16 +54,16 @@ func InstallProfile() error {
 	profilePath := f.Name()
 	viper.Set("aa-profile-path", profilePath)
 
-	if err := GenerateProfile(f); err != nil {
+	if err := generateProfile(f); err != nil {
 		return errors.Wrap(err, "couldn't generate apparmor profile")
 	}
-	if err := LoadProfile(profilePath); err != nil {
+	if err := loadProfile(profilePath); err != nil {
 		return errors.Wrap(err, "couldn't load apparmor profile")
 	}
 	return nil
 }
 
-func GenerateProfile(f *os.File) error {
+func generateProfile(f *os.File) error {
 	ex, err := os.Executable()
 	if err != nil {
 		return err

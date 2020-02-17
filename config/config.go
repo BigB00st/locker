@@ -13,7 +13,7 @@ import (
 const configFile = "config.toml"
 const linuxDefaultPATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-func LoadConfig() error {
+func Load() error {
 	if err := readConfig(); err != nil {
 		return errors.Wrap(err, "couldn't read config file.")
 	}

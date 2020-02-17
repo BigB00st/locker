@@ -10,15 +10,18 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"gitlab.com/bigboost/locker/apparmor"
+	"gitlab.com/bigboost/locker/caps"
 	"gitlab.com/bigboost/locker/cgroups"
 	"gitlab.com/bigboost/locker/config"
 	"gitlab.com/bigboost/locker/network"
+	"gitlab.com/bigboost/locker/seccomp"
 	"gitlab.com/bigboost/locker/utils"
 )
 
 // Usage: ./locker command args...
 func main() {
-	if err := config.LoadConfig(); err != nil {
+	if err := config.Load(); err != nil {
 		utils.PrintAndExit(err)
 	}
 
@@ -44,16 +47,16 @@ func main() {
 // Parent function, forks and execs child, which runs the requested command
 func parent() error {
 	// drop most capabilites
-	if err := setCaps(setupCapabilites); err != nil {
+	if err := caps.SetCaps(caps.SetupCapabilites); err != nil {
 		return err
 	}
 
-	if apparmorEnabled() {
-		if err := InstallProfile(); err != nil {
+	if apparmor.Enabled() {
+		if err := apparmor.InstallProfile(); err != nil {
 			return err
 		} else {
 			defer func() {
-				if err := UnloadProfile(viper.GetString("aa-profile-path")); err != nil {
+				if err := apparmor.UnloadProfile(viper.GetString("aa-profile-path")); err != nil {
 					utils.PrintAndExit(err)
 				}
 			}()
@@ -75,19 +78,19 @@ func parent() error {
 	}
 
 	//configure cgroups
-	if err := cgroups.CgInit(); err != nil {
-		cgroups.CgDestruct()
+	if err := cgroups.Init(); err != nil {
+		cgroups.Destruct()
 		return err
 	}
 
 	//Delete new cgroups at the end
 	defer func() {
-		if err := cgroups.CgDestruct(); err != nil {
+		if err := cgroups.Destruct(); err != nil {
 			utils.PrintAndExit(err)
 		}
 	}()
 
-	if err := network.CreateNetConnectivity(); err != nil {
+	if err := network.CreateConnectivity(); err != nil {
 		fmt.Println(err, " - internet connectivity will be disabled")
 	}
 
@@ -97,7 +100,7 @@ func parent() error {
 
 	fmt.Println("Child PID:", cmd.Process.Pid)
 
-	if err := cgroups.CgRemoveSelf(); err != nil {
+	if err := cgroups.RemoveSelf(); err != nil {
 		return err
 	}
 
@@ -116,7 +119,7 @@ func child() error {
 	//command to run
 	cmd := exec.Command(nonFlagArgs[0], nonFlagArgs[1:]...)
 
-	syscallsWhitelist, err := readSeccompProfile(viper.GetString("security.seccomp"))
+	syscallsWhitelist, err := seccomp.ReadProfile(viper.GetString("security.seccomp"))
 	if err != nil {
 		return err
 	}
@@ -147,12 +150,12 @@ func child() error {
 		return errors.Wrap(err, "couldn't mount /proc")
 	}
 
-	scmpFilter, err := createScmpFilter(syscallsWhitelist)
+	scmpFilter, err := seccomp.CreateFilter(syscallsWhitelist)
 	if err != nil {
 		return err
 	}
 	defer scmpFilter.Release()
-	if err := setCaps(containerCapabilites); err != nil {
+	if err := caps.SetCaps(caps.ContainerCapabilites); err != nil {
 		return errors.Wrap(err, "couldn't set capabilites of child")
 	}
 	cmd.Run()
