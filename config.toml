@@ -10,5 +10,6 @@ memory-swappiness = false
 network = "forwarding"
 
 [security]
-seccomp = ""
-apparmor = ""
+seccomp = "seccomp_default.json"
+aa-template = "locker.prof"
+aa-profile-name = "locker-default"
