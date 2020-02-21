@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"syscall"
 
 	"github.com/pkg/errors"
@@ -46,11 +45,6 @@ func main() {
 
 // Parent function, forks and execs child, which runs the requested command
 func parent() error {
-	// drop most capabilites
-	if err := caps.SetCaps(caps.SetupCapabilites); err != nil {
-		return err
-	}
-
 	if apparmor.Enabled() {
 		if err := apparmor.InstallProfile(); err != nil {
 			return err
@@ -78,7 +72,7 @@ func parent() error {
 	}
 
 	//configure cgroups
-	if err := cgroups.Init(); err != nil {
+	if err := cgroups.Set(); err != nil {
 		cgroups.Destruct()
 		return err
 	}
@@ -113,7 +107,7 @@ func parent() error {
 
 // Child process, runs requested command
 func child() error {
-	nonFlagArgs := strings.Fields(pflag.Args()[0])
+	nonFlagArgs := pflag.Args()
 	fmt.Printf("Running: %v\n", nonFlagArgs[0:])
 
 	//command to run
@@ -155,7 +149,7 @@ func child() error {
 		return err
 	}
 	defer scmpFilter.Release()
-	if err := caps.SetCaps(caps.ContainerCapabilites); err != nil {
+	if err := caps.SetCaps(viper.GetStringSlice("security.caps")); err != nil {
 		return errors.Wrap(err, "couldn't set capabilites of child")
 	}
 	cmd.Run()

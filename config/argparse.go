@@ -26,6 +26,10 @@ func parseArgs() {
 	pflag.String("aa-profile-name", "locker-default", "Apparmor profile name")
 	pflag.String("aa-template", "locker.prof", "Apparmor profile template")
 
+	// capabilites
+	pflag.StringSlice("cap-add", nil, "Add linux capabilites")
+	pflag.StringSlice("cap-drop", nil, "Drop linux capabilites")
+
 	pflag.Parse()
 }
 
@@ -62,6 +66,12 @@ func bindFlagsToConfig() error {
 		return err
 	}
 	if err := bindFlagToConfig("security.aa-template", "aa-profile-name"); err != nil {
+		return err
+	}
+	if err := bindFlagToConfig("security.cap-add", "cap-add"); err != nil {
+		return err
+	}
+	if err := bindFlagToConfig("security.cap-drop", "cap-drop"); err != nil {
 		return err
 	}
 	return nil

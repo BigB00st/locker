@@ -1,13 +1,9 @@
 package config
 
 import (
-	"os"
-	"path"
-	"strconv"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"gitlab.com/bigboost/locker/cgroups"
+	"gitlab.com/bigboost/locker/caps"
 )
 
 const configFile = "config.toml"
@@ -20,6 +16,11 @@ func Load() error {
 	parseArgs()
 	if err := bindFlagsToConfig(); err != nil {
 		return errors.Wrap(err, "couldn't bind flags to config")
+	}
+	if capList, err := caps.GetCapsList(); err != nil {
+		return err
+	} else {
+		viper.Set("security.caps", capList)
 	}
 
 	return nil
@@ -35,10 +36,5 @@ func readConfig() error {
 			return errors.Wrapf(err, "Error while reading %q config file", configFile)
 		}
 	}
-	viper.Set("cgroups.name", "locker"+strconv.Itoa(os.Getpid()))
-	viper.Set("cgroups.cpuset-path", path.Join(cgroups.BasePath, cgroups.CPUSetPath, viper.GetString("cgroups.name")))
-	viper.Set("cgroups.cpuset-root-path", path.Join(cgroups.BasePath, cgroups.CPUSetPath))
-	viper.Set("cgroups.memory-path", path.Join(cgroups.BasePath, cgroups.MemoryPath, viper.GetString("cgroups.name")))
-	viper.Set("cgroups.memory-root-path", path.Join(cgroups.BasePath, cgroups.MemoryPath))
 	return nil
 }

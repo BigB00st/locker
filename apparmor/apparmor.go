@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gitlab.com/bigboost/locker/utils"
 )
@@ -77,7 +78,7 @@ func generateProfile(f *os.File) error {
 	profile := string(profileBytes)
 	profile = strings.Replace(profile, "$EXECUTABLE", ex, 1)
 	profile = strings.Replace(profile, "$TEMP-FILE", f.Name(), 1)
-	profile = strings.Replace(profile, "$COMMAND", os.Args[1], 1)
+	profile = strings.Replace(profile, "$COMMAND", pflag.Arg(0), 1)
 
 	_, err = f.Write([]byte(profile))
 	return err
