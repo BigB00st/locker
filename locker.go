@@ -9,10 +9,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"gitlab.com/bigboost/locker/apparmor"
 	"gitlab.com/bigboost/locker/caps"
 	"gitlab.com/bigboost/locker/cgroups"
 	"gitlab.com/bigboost/locker/config"
+	"gitlab.com/bigboost/locker/ipc"
 	"gitlab.com/bigboost/locker/network"
 	"gitlab.com/bigboost/locker/seccomp"
 	"gitlab.com/bigboost/locker/utils"
@@ -45,7 +45,7 @@ func main() {
 
 // Parent function, forks and execs child, which runs the requested command
 func parent() error {
-	if apparmor.Enabled() {
+	/*if apparmor.Enabled() {
 		if err := apparmor.InstallProfile(); err != nil {
 			return err
 		} else {
@@ -55,7 +55,7 @@ func parent() error {
 				}
 			}()
 		}
-	}
+	}*/
 
 	//command to fork exec self
 	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
@@ -88,13 +88,36 @@ func parent() error {
 		fmt.Println(err, " - internet connectivity will be disabled")
 	}
 
+	listener, err := ipc.CreateSocket()
+	if err != nil {
+		return errors.Wrap(err, "couldn't create socket")
+	}
+
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, "couldn't start child")
 	}
 
+	conn, err := ipc.SocketAccept(listener)
+	if err != nil {
+		return errors.Wrap(err, "couldn't create connection")
+	}
+	defer conn.Close()
+
 	fmt.Println("Child PID:", cmd.Process.Pid)
 
 	if err := cgroups.RemoveSelf(); err != nil {
+		return err
+	}
+	if err := ipc.Send(conn, CGROUPS_ACK); err != nil {
+		return err
+	}
+
+	// wait for child to request apparmor, set and send
+	if err := ipc.WaitForMessage(conn, APPARMOR_REQ); err != nil {
+		return err
+	}
+	// apparmor
+	if err := ipc.Send(conn, APPARMOR_ACK); err != nil {
 		return err
 	}
 
@@ -107,6 +130,15 @@ func parent() error {
 
 // Child process, runs requested command
 func child() error {
+	conn, err := ipc.ConnectToSocket()
+	if err != nil {
+		return errors.Wrap(err, "couldn't connect to socket")
+	}
+	defer conn.Close()
+
+	// wait for cgroups
+	ipc.WaitForMessage(conn, CGROUPS_ACK)
+
 	nonFlagArgs := pflag.Args()
 	fmt.Printf("Running: %v\n", nonFlagArgs[0:])
 
@@ -152,7 +184,11 @@ func child() error {
 	if err := caps.SetCaps(viper.GetStringSlice("security.caps")); err != nil {
 		return errors.Wrap(err, "couldn't set capabilites of child")
 	}
-	cmd.Run()
 
+	// request apparmor and wait for completion
+	ipc.Send(conn, APPARMOR_REQ)
+	ipc.WaitForMessage(conn, APPARMOR_ACK)
+
+	cmd.Run()
 	return nil
 }

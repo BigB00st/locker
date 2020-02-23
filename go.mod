@@ -3,6 +3,7 @@ module gitlab.com/bigboost/locker
 go 1.13
 
 require (
+	bitbucket.org/avd/go-ipc v0.6.1
 	code.cloudfoundry.org/bytefmt v0.0.0-20200131002437-cf55d5288a48
 	github.com/pkg/errors v0.9.1
 	github.com/seccomp/libseccomp-golang v0.9.1
