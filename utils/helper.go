@@ -5,6 +5,9 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	uuid "github.com/nu7hatch/gouuid"
+	"github.com/pkg/errors"
 )
 
 // Child is created in a new pid namespace, so it will gain pid 1
@@ -37,4 +40,12 @@ func CmdOut(binary string, arg ...string) (string, error) {
 func PrintAndExit(a ...interface{}) {
 	fmt.Println(a...)
 	os.Exit(1)
+}
+
+func CreateUuid() (string, error) {
+	u, err := uuid.NewV4()
+	if err != nil {
+		return "", errors.Wrap(err, "couldn't create uuid")
+	}
+	return u.String(), nil
 }

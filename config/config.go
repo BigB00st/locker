@@ -4,10 +4,20 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"gitlab.com/bigboost/locker/caps"
+	"gitlab.com/bigboost/locker/utils"
 )
 
 const configFile = "config.toml"
 const linuxDefaultPATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+func createUuid() error {
+	u, err := utils.CreateUuid()
+	if err != nil {
+		return err
+	}
+	viper.Set("uuid", u)
+	return nil
+}
 
 func Load() error {
 	if err := readConfig(); err != nil {
@@ -21,6 +31,10 @@ func Load() error {
 		return err
 	} else {
 		viper.Set("security.caps", capList)
+	}
+
+	if err := createUuid(); err != nil {
+		return err
 	}
 
 	return nil

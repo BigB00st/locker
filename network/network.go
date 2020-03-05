@@ -1,6 +1,8 @@
 package network
 
 import (
+	"fmt"
+	"log"
 	"net"
 	"os/exec"
 	"path/filepath"
@@ -9,7 +11,10 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/milosgajdos/tenus"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
+	"github.com/vishvananda/netns"
 	"gitlab.com/bigboost/locker/utils"
 )
 
@@ -20,6 +25,7 @@ const (
 	ipRouteDefaultIndex = 0
 	ipRouteNameIndex    = 4
 	netnsDirectory      = "/var/run/netns/"
+	ifLen               = 8
 )
 
 // SYS_SETNS syscall allows changing the namespace of the current process.
@@ -36,6 +42,128 @@ var SYS_SETNS = map[string]uintptr{
 	"riscv64":  268,
 	"s390x":    339,
 }[runtime.GOARCH]
+
+func CreateConnectivity2() error {
+	uuid := viper.GetString("uuid")[:ifLen]
+	vethCIDR := "10.200.1.1/24"
+	vethPeerCIDR := "10.200.1.2/24"
+	vethName := uuid + "0"
+	vethPeerName := uuid + "1"
+	masqueradeIp := "10.200.1.0/255.255.255.0"
+	netInterface, err := connectedInterfaceName()
+	if err != nil {
+		return err
+	}
+
+	veth, err := tenus.NewVethPairWithOptions(vethName, tenus.VethOptions{PeerName: vethPeerName})
+	if err != nil {
+		return errors.Wrap(err, "couldn't create veth pair")
+	}
+	if err := veth.SetLinkUp(); err != nil {
+		return errors.Wrap(err, "couldn't set veth up")
+	}
+
+	// add ip to veth
+	vethHostIp, vethHostIpNet, err := net.ParseCIDR(vethCIDR)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't parse ICDR of %q", vethCIDR)
+	}
+	if err := veth.SetLinkIp(vethHostIp, vethHostIpNet); err != nil {
+		return errors.Wrap(err, "couldn't set ip of veth")
+	}
+
+	// enable ipv4 forwarding
+	if err := enableIpv4Forwarding(); err != nil {
+		return err
+	}
+
+	// set rules to allow connectivity
+	if err := setIptablesRules(masqueradeIp, netInterface, vethName); err != nil {
+		return err
+	}
+
+	// get current namespace
+	oldNs, err := netns.Get()
+	if err != nil {
+		return errors.Wrap(err, "couldn't get current network namespace")
+	}
+	viper.Set("old-netns", oldNs)
+	// create new namespace and enter
+	newNs, err := netns.New()
+	if err != nil {
+		return errors.Wrap(err, "couldn't create network namespace")
+	}
+	// return to old namespace
+	if err := netns.Set(oldNs); err != nil {
+		return errors.Wrap(err, "couldn't return to old network namespace")
+	}
+
+	// assign peer to namespace
+	if err := veth.SetPeerLinkNsPid(int(newNs)); err != nil {
+		return errors.Wrap(err, "couldn't set veth peer in new network namespace")
+	}
+
+	if err := veth.SetPeerLinkUp(); err != nil {
+		return errors.Wrap(err, "couldn't set veth peer up")
+	}
+
+	// setup ip of veth peer
+	vethPeerHostIp, vethPeerHostIpNet, err := net.ParseCIDR(vethPeerCIDR)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't parse ICDR of %q", vethCIDR)
+	}
+	if err := veth.SetPeerLinkIp(vethPeerHostIp, vethPeerHostIpNet); err != nil {
+		return errors.Wrap(err, "couldn't set ip of veth peer")
+	}
+
+	// add default gateway inside namespace
+	if err := veth.SetLinkDefaultGw(&vethHostIp); err != nil {
+		return errors.Wrap(err, "couldn't set veth peer default gateway")
+	}
+
+	// join new namespace
+	if err := netns.Set(newNs); err != nil {
+		return errors.Wrap(err, "couldn't change to new network namespace")
+	}
+
+	return nil
+}
+
+func Cleanup() error {
+	newNs, _ := netns.Get()
+	if err := netns.Set(netns.NsHandle(viper.Get("old-netns"))); err != nil {
+		return errors.Wrap(err, "couldn't return to old network namespace")
+	}
+	vethName := viper.GetString("uuid")[:ifLen] + "0"
+	if err := tenus.DeleteLink(vethName); err != nil {
+		return errors.Wrapf(err, "couldnt delete link %q", vethName)
+	}
+	if err := newNs.Close(); err != nil {
+		return errors.Wrapf(err, "couldn't close the new network namespace")
+	}
+	return nil
+}
+
+func createVethPair(vethName, vethPeerName, vethCIDR string) (tenus.Linker, error) {
+	// create veth pair
+	veth, err := tenus.NewVethPairWithOptions(vethName, tenus.VethOptions{PeerName: vethPeerName})
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't create veth pair")
+	}
+
+	// ASSIGN IP ADDRESS TO THE HOST VETH INTERFACE
+	vethHostIp, vethHostIpNet, err := net.ParseCIDR(vethCIDR)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := veth.SetLinkIp(vethHostIp, vethHostIpNet); err != nil {
+		fmt.Println(err)
+	}
+
+	return veth, nil
+
+}
 
 func CreateConnectivity() error {
 	nsName := "lockerNs"
@@ -176,7 +304,7 @@ func bridgeExists(bridgeName string) bool {
 	return strings.Contains(out, bridgeName)
 }
 
-func createBridge(bridgeName string) error {
+/*func createBridge(bridgeName string) error {
 	if bridgeExists(bridgeName) {
 		return nil
 	}
@@ -185,7 +313,7 @@ func createBridge(bridgeName string) error {
 		return errors.Wrapf(err, "couldn't create bridge %q", bridgeName)
 	}
 	return nil
-}
+}*/
 
 func setInterfaceUp(interfaceName string) error {
 	if err := exec.Command("ip", "link", "set", interfaceName, "up").Run(); err != nil {

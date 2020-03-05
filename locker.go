@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"gitlab.com/bigboost/locker/apparmor"
 	"gitlab.com/bigboost/locker/caps"
 	"gitlab.com/bigboost/locker/cgroups"
 	"gitlab.com/bigboost/locker/config"
@@ -45,7 +44,7 @@ func main() {
 
 // Parent function, forks and execs child, which runs the requested command
 func parent() error {
-	if apparmor.Enabled() {
+	/*if apparmor.Enabled() {
 		if err := apparmor.InstallProfile(); err != nil {
 			return err
 		} else {
@@ -55,7 +54,7 @@ func parent() error {
 				}
 			}()
 		}
-	}
+	}*/
 
 	//command to fork exec self
 	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
@@ -84,9 +83,10 @@ func parent() error {
 		}
 	}()
 
-	if err := network.CreateConnectivity(); err != nil {
+	if err := network.CreateConnectivity2(); err != nil {
 		fmt.Println(err, " - internet connectivity will be disabled")
 	}
+	defer network.Cleanup()
 
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, "couldn't start child")
