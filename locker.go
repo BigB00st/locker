@@ -4,19 +4,18 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 	"syscall"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"gitlab.com/bigboost/locker/apparmor"
-	"gitlab.com/bigboost/locker/caps"
-	"gitlab.com/bigboost/locker/cgroups"
-	"gitlab.com/bigboost/locker/config"
-	"gitlab.com/bigboost/locker/network"
-	"gitlab.com/bigboost/locker/seccomp"
-	"gitlab.com/bigboost/locker/utils"
+	"gitlab.com/amit-yuval/locker/apparmor"
+	"gitlab.com/amit-yuval/locker/caps"
+	"gitlab.com/amit-yuval/locker/cgroups"
+	"gitlab.com/amit-yuval/locker/config"
+	"gitlab.com/amit-yuval/locker/network"
+	"gitlab.com/amit-yuval/locker/seccomp"
+	"gitlab.com/amit-yuval/locker/utils"
 )
 
 // Usage: ./locker command args...
@@ -46,11 +45,6 @@ func main() {
 
 // Parent function, forks and execs child, which runs the requested command
 func parent() error {
-	// drop most capabilites
-	if err := caps.SetCaps(caps.SetupCapabilites); err != nil {
-		return err
-	}
-
 	if apparmor.Enabled() {
 		if err := apparmor.InstallProfile(); err != nil {
 			return err
@@ -78,7 +72,7 @@ func parent() error {
 	}
 
 	//configure cgroups
-	if err := cgroups.Init(); err != nil {
+	if err := cgroups.Set(); err != nil {
 		cgroups.Destruct()
 		return err
 	}
@@ -113,7 +107,7 @@ func parent() error {
 
 // Child process, runs requested command
 func child() error {
-	nonFlagArgs := strings.Fields(pflag.Args()[0])
+	nonFlagArgs := pflag.Args()
 	fmt.Printf("Running: %v\n", nonFlagArgs[0:])
 
 	//command to run
@@ -155,7 +149,7 @@ func child() error {
 		return err
 	}
 	defer scmpFilter.Release()
-	if err := caps.SetCaps(caps.ContainerCapabilites); err != nil {
+	if err := caps.SetCaps(viper.GetStringSlice("security.caps")); err != nil {
 		return errors.Wrap(err, "couldn't set capabilites of child")
 	}
 	cmd.Run()

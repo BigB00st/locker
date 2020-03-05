@@ -24,8 +24,16 @@ const (
 	procsFile       = "cgroup.procs"
 )
 
+func init() {
+	viper.Set("cgroups.name", "locker"+strconv.Itoa(os.Getpid()))
+	viper.Set("cgroups.cpuset-path", path.Join(BasePath, CPUSetPath, viper.GetString("cgroups.name")))
+	viper.Set("cgroups.cpuset-root-path", path.Join(BasePath, CPUSetPath))
+	viper.Set("cgroups.memory-path", path.Join(BasePath, MemoryPath, viper.GetString("cgroups.name")))
+	viper.Set("cgroups.memory-root-path", path.Join(BasePath, MemoryPath))
+}
+
 //cgroup function, limits recourse usage of process
-func Init() error {
+func Set() error {
 	cpusAllowed := viper.GetString("cgroups.cpus-allowed")
 	bytesLimit, err := bytefmt.ToBytes(viper.GetString("cgroups.memory-limit"))
 	if err != nil {
