@@ -9,13 +9,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"gitlab.com/bigboost/locker/apparmor"
-	"gitlab.com/bigboost/locker/caps"
-	"gitlab.com/bigboost/locker/cgroups"
-	"gitlab.com/bigboost/locker/config"
-	"gitlab.com/bigboost/locker/network"
-	"gitlab.com/bigboost/locker/seccomp"
-	"gitlab.com/bigboost/locker/utils"
+	"gitlab.com/amit-yuval/locker/apparmor"
+	"gitlab.com/amit-yuval/locker/caps"
+	"gitlab.com/amit-yuval/locker/cgroups"
+	"gitlab.com/amit-yuval/locker/config"
+	"gitlab.com/amit-yuval/locker/network"
+	"gitlab.com/amit-yuval/locker/seccomp"
+	"gitlab.com/amit-yuval/locker/utils"
 )
 
 // Usage: ./locker command args...

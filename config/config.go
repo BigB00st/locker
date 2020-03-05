@@ -3,7 +3,7 @@ package config
 import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"gitlab.com/bigboost/locker/caps"
+	"gitlab.com/amit-yuval/locker/caps"
 )
 
 const configFile = "config.toml"

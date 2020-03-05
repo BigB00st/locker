@@ -1,4 +1,4 @@
-module gitlab.com/bigboost/locker
+module gitlab.com/amit-yuval/locker
 
 go 1.13
 

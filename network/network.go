@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
-	"gitlab.com/bigboost/locker/utils"
+	"gitlab.com/amit-yuval/locker/utils"
 )
 
 const (

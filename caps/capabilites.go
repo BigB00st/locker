@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/syndtr/gocapability/capability"
-	"gitlab.com/bigboost/locker/utils"
+	"gitlab.com/amit-yuval/locker/utils"
 )
 
 var capabilityMap = make(map[string]capability.Cap)
