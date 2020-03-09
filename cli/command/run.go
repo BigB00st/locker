@@ -9,34 +9,23 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"gitlab.com/amit-yuval/locker/apparmor"
 	"gitlab.com/amit-yuval/locker/caps"
 	"gitlab.com/amit-yuval/locker/cgroups"
+	"gitlab.com/amit-yuval/locker/config"
 	"gitlab.com/amit-yuval/locker/network"
 	"gitlab.com/amit-yuval/locker/seccomp"
-	"gitlab.com/amit-yuval/locker/utils"
 )
 
 func RunRun(args []string) error {
 	if os.Geteuid() != 0 {
 		return errors.New("locker run needs to be executed as root")
 	}
-
-	if utils.IsChild() {
-		if err := child(); err != nil {
-			return err
-		}
-	} else { //parent
-		if err := parent(); err != nil {
-			return err
-		}
-	}
-	return nil
+	return parent()
 }
 
 // Parent function, forks and execs child, which runs the requested command
 func parent() error {
-	if apparmor.Enabled() {
+	/*if apparmor.Enabled() {
 		if err := apparmor.InstallProfile(); err != nil {
 			return err
 		} else {
@@ -46,7 +35,7 @@ func parent() error {
 				}
 			}()
 		}
-	}
+	}*/
 
 	//command to fork exec self
 	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
@@ -71,7 +60,7 @@ func parent() error {
 	//Delete new cgroups at the end
 	defer func() {
 		if err := cgroups.Destruct(); err != nil {
-			utils.PrintAndExit(err)
+			fmt.Println(err)
 		}
 	}()
 
@@ -97,9 +86,10 @@ func parent() error {
 }
 
 // Child process, runs requested command
-func child() error {
-	nonFlagArgs := pflag.Args()
-	fmt.Printf("Running: %v\n", nonFlagArgs[0:])
+func Child() error {
+	config.Init()
+	nonFlagArgs := pflag.Args()[1:]
+	fmt.Println("Running:", nonFlagArgs[0:])
 
 	//command to run
 	cmd := exec.Command(nonFlagArgs[0], nonFlagArgs[1:]...)

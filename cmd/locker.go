@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"gitlab.com/amit-yuval/locker/cli/command"
+	"gitlab.com/amit-yuval/locker/config"
 )
 
 func GetCmd() *cobra.Command {
@@ -16,21 +17,21 @@ func GetCmd() *cobra.Command {
 
 	cmdList := [](*cobra.Command){
 		&cobra.Command{
-			Use:   "locker run [OPTIONS] IMAGE [COMMAND] [ARG...]",
+			Use:   "run [OPTIONS] IMAGE [COMMAND] [ARG...]",
 			Short: "Run a container",
 			RunE: func(cmd *cobra.Command, args []string) error {
 				return command.RunRun(args)
 			},
 		},
 		&cobra.Command{
-			Use:   "locker pull NAME",
+			Use:   "pull NAME",
 			Short: "Pull an image from docker hub",
 			RunE: func(cmd *cobra.Command, args []string) error {
 				return command.RunPull(args)
 			},
 		},
 		&cobra.Command{
-			Use:   "locker remove NAME",
+			Use:   "remove NAME",
 			Short: "Remove an image locally",
 			RunE: func(cmd *cobra.Command, args []string) error {
 				return command.RunRemove(args)
@@ -45,6 +46,7 @@ func GetCmd() *cobra.Command {
 }
 
 func Execute(cmd *cobra.Command) {
+	config.Init()
 	if err := cmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

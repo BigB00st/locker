@@ -137,9 +137,9 @@ func PullImage(imageName string) error {
 	return nil
 }
 
-func RemoveImage(imageName string) {
+func RemoveImage(imageName string) error {
 	imageDir := filepath.Join(imagesDir, imageName)
-	os.RemoveAll(imageDir)
+	return os.RemoveAll(imageDir)
 }
 
 func main() {
