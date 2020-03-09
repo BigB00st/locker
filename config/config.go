@@ -9,7 +9,7 @@ import (
 const configFile = "config.toml"
 const linuxDefaultPATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-func Load() error {
+func Init() error {
 	if err := readConfig(); err != nil {
 		return errors.Wrap(err, "couldn't read config file.")
 	}
@@ -17,12 +17,19 @@ func Load() error {
 	if err := bindFlagsToConfig(); err != nil {
 		return errors.Wrap(err, "couldn't bind flags to config")
 	}
+	if err := setConsistentFlags(); err != nil {
+		return errors.Wrap(err, "couldn't set persistent flags")
+	}
+
+	return nil
+}
+
+func setConsistentFlags() error {
 	if capList, err := caps.GetCapsList(); err != nil {
 		return err
 	} else {
 		viper.Set("security.caps", capList)
 	}
-
 	return nil
 }
 
