@@ -141,10 +141,3 @@ func RemoveImage(imageName string) error {
 	imageDir := filepath.Join(imagesDir, imageName)
 	return os.RemoveAll(imageDir)
 }
-
-func main() {
-	if err := PullImage(os.Args[1]); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
