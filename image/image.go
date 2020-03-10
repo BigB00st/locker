@@ -20,6 +20,17 @@ type ImageMissingError struct {
 func (e *ImageMissingError) Error() string { return e.msg }
 
 func RemoveImage(imageName string) error {
+	imagesMap, err := getImagesMap()
+	if err != nil {
+		return err
+	}
+	if _, ok := imagesMap[imageName]; !ok {
+		return fmt.Errorf("image %s not found", imageName)
+	}
+	delete(imagesMap, imageName)
+	if err := updateImagesJson(imagesMap); err != nil {
+		return err
+	}
 	imageDir := filepath.Join(ImagesDir, imageName)
 	return os.RemoveAll(imageDir)
 }
@@ -93,19 +104,18 @@ func getImagesMap() (map[string][]string, error) {
 	}
 	imagesMap := make(map[string][]string)
 	if err := json.Unmarshal(jsonFile, &imagesMap); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "couldn't load images map to json file")
 	}
 	return imagesMap, nil
 }
 
 func updateImagesJson(data map[string][]string) error {
-	f, err := os.OpenFile(imagesJsonFile, os.O_RDWR, 0744)
+	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return errors.Wrap(err, "error opening images json file")
+		return errors.Wrap(err, "couldn't marshal json data")
 	}
-	jsonData, _ := json.Marshal(data)
-	if _, err := f.Write(jsonData); err != nil {
-		return errors.Wrap(err, "error writing to images json file")
+	if err := ioutil.WriteFile(imagesJsonFile, jsonData, 0644); err != nil {
+		return errors.Wrap(err, "couldn't write to images json file")
 	}
 	return nil
 }
