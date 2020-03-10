@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"gitlab.com/amit-yuval/locker/web"
+	"gitlab.com/amit-yuval/locker/image"
 )
 
 func RunRemove(args []string) error {
@@ -15,5 +15,5 @@ func RunRemove(args []string) error {
 	if len(args) != 1 {
 		return errors.New("Usage: locker remove IMAGE")
 	}
-	return web.RemoveImage(args[0])
+	return image.RemoveImage(args[0])
 }

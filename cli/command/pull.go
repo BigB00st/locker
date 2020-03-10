@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/pkg/errors"
-	"gitlab.com/amit-yuval/locker/web"
+	"gitlab.com/amit-yuval/locker/image"
 )
 
 func RunPull(args []string) error {
@@ -15,5 +15,5 @@ func RunPull(args []string) error {
 	if len(args) != 1 {
 		return errors.New("Usage: locker pull IMAGE")
 	}
-	return web.PullImage(args[0])
+	return image.PullImage(args[0])
 }

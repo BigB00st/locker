@@ -1,4 +1,4 @@
-package web
+package image
 
 import (
 	"context"
@@ -137,7 +137,4 @@ func PullImage(imageName string) error {
 	return nil
 }
 
-func RemoveImage(imageName string) error {
-	imageDir := filepath.Join(imagesDir, imageName)
-	return os.RemoveAll(imageDir)
-}
+
