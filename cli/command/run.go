@@ -117,10 +117,10 @@ func Child() error {
 	if err := syscall.Sethostname([]byte(viper.GetString("name"))); err != nil {
 		return errors.Wrap(err, "couldn't set child's hostname")
 	}
-	if err := syscall.Chdir("/home/amit/containers/ubuntu"); err != nil {
+	if err := syscall.Chdir(filepath.Join(image.ImagesDir, nonFlagArgs[0], image.Merged)); err != nil {
 		return errors.Wrap(err, "couldn't changedir into container")
 	}
-	if err := syscall.Chroot(filepath.Join(image.ImagesDir, nonFlagArgs[0], image.Merged)); err != nil {
+	if err := syscall.Chroot("."); err != nil {
 		return errors.Wrap(err, "couldn't change root into container")
 	}
 	if err := os.Setenv("PATH", viper.GetString("path")); err != nil {
