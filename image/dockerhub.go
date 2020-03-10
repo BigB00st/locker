@@ -15,14 +15,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	registry        = "https://registry-1.docker.io/v2/"
-	imagesDir       = "/var/lib/locker/"
-	authUrlIndex    = 1
-	authHeaderIndex = 3
-	idPrintLen      = 10
-)
-
 func toJson(resp *http.Response) map[string]interface{} {
 	ret := make(map[string]interface{})
 	json.NewDecoder(resp.Body).Decode(&ret)
@@ -36,7 +28,7 @@ func setHeaders(req *http.Request, headers map[string]string) {
 }
 
 func PullImage(imageName string) error {
-	imageDir := filepath.Join(imagesDir, imageName)
+	imageDir := filepath.Join(ImagesDir, imageName)
 	if _, err := os.Stat(imageDir); !os.IsNotExist(err) {
 		return fmt.Errorf("Image %s exists", imageName)
 	}
@@ -105,6 +97,7 @@ func PullImage(imageName string) error {
 		return errors.Wrapf(err, "error creating %s", imageDir)
 	}
 
+	var layerList []string
 	parentId := ""
 	for _, layer := range layers.([]interface{}) {
 		layer := layer.(map[string]interface{})
@@ -133,8 +126,18 @@ func PullImage(imageName string) error {
 			return errors.Wrapf(err, "error extracting layer %s", fakeLayerId)
 		}
 
+		layerList = append(layerList, layerDir)
+
 	}
+
+	imagesMap, err := getImagesMap()
+	if err != nil {
+		return err
+	}
+	imagesMap[imageName] = layerList
+	if err := updateImagesJson(imagesMap); err != nil {
+		return err
+	}
+
 	return nil
 }
-
-

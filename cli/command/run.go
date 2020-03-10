@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 
 	"github.com/pkg/errors"
@@ -12,6 +13,7 @@ import (
 	"gitlab.com/amit-yuval/locker/caps"
 	"gitlab.com/amit-yuval/locker/cgroups"
 	"gitlab.com/amit-yuval/locker/config"
+	"gitlab.com/amit-yuval/locker/image"
 	"gitlab.com/amit-yuval/locker/network"
 	"gitlab.com/amit-yuval/locker/seccomp"
 )
@@ -20,11 +22,14 @@ func RunRun(args []string) error {
 	if os.Geteuid() != 0 {
 		return errors.New("locker run needs to be executed as root")
 	}
-	return parent()
+	if len(args) < 1 {
+		return errors.New("Image not specified")
+	}
+	return parent(args)
 }
 
 // Parent function, forks and execs child, which runs the requested command
-func parent() error {
+func parent(args []string) error {
 	/*if apparmor.Enabled() {
 		if err := apparmor.InstallProfile(); err != nil {
 			return err
@@ -36,9 +41,8 @@ func parent() error {
 			}()
 		}
 	}*/
-
 	//command to fork exec self
-	cmd := exec.Command("/proc/self/exe", os.Args[1:]...)
+	cmd := exec.Command("/proc/self/exe", args...)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
@@ -50,6 +54,12 @@ func parent() error {
 		Cloneflags:   syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS,
 		Unshareflags: syscall.CLONE_NEWNS,
 	}
+
+	err := image.MountImage(args[0])
+	if err != nil {
+		return err
+	}
+	defer image.Cleanup(args[0])
 
 	//configure cgroups
 	if err := cgroups.Set(); err != nil {
@@ -88,11 +98,11 @@ func parent() error {
 // Child process, runs requested command
 func Child() error {
 	config.Init()
-	nonFlagArgs := pflag.Args()[1:]
+	nonFlagArgs := pflag.Args()
 	fmt.Println("Running:", nonFlagArgs[0:])
 
 	//command to run
-	cmd := exec.Command(nonFlagArgs[0], nonFlagArgs[1:]...)
+	cmd := exec.Command("/bin/bash")
 
 	syscallsWhitelist, err := seccomp.ReadProfile(viper.GetString("security.seccomp"))
 	if err != nil {
@@ -110,7 +120,7 @@ func Child() error {
 	if err := syscall.Chdir("/home/amit/containers/ubuntu"); err != nil {
 		return errors.Wrap(err, "couldn't changedir into container")
 	}
-	if err := syscall.Chroot("."); err != nil {
+	if err := syscall.Chroot(filepath.Join(image.ImagesDir, nonFlagArgs[0], image.Merged)); err != nil {
 		return errors.Wrap(err, "couldn't change root into container")
 	}
 	if err := os.Setenv("PATH", viper.GetString("path")); err != nil {

@@ -12,10 +12,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	imagesJsonFile = "images.json"
-)
-
 // define error for missing image
 type ImageMissingError struct {
 	msg string // description of error
@@ -23,71 +19,63 @@ type ImageMissingError struct {
 
 func (e *ImageMissingError) Error() string { return e.msg }
 
-type OverlayDirs struct {
-	upper  string
-	work   string
-	merged string
-	lower  []string
-}
-
-func NewOverlayDirs(lowerLayers []string) *OverlayDirs {
-	s := new(OverlayDirs)
-	s.Init(lowerLayers)
-	return s
-}
-
-func (s *OverlayDirs) Init(lowerLayers []string) {
-	s.upper = os.TempDir()
-	s.work = os.TempDir()
-	s.merged = os.TempDir()
-	s.lower = lowerLayers
-}
-
-func (s *OverlayDirs) Destroy() {
-	os.RemoveAll(s.upper)
-	os.RemoveAll(s.work)
-	os.RemoveAll(s.merged)
-}
-
 func RemoveImage(imageName string) error {
-	imageDir := filepath.Join(imagesDir, imageName)
+	imageDir := filepath.Join(ImagesDir, imageName)
 	return os.RemoveAll(imageDir)
 }
 
-func MountImage(imageName string) (*OverlayDirs, error) {
+func createOverlayDirs(basedir string) error {
+	for _, d := range []string{work, upper, Merged} {
+		if err := os.Mkdir(filepath.Join(basedir, d), 0744); err != nil {
+			return errors.Wrapf(err, "failed to create directory %s", d)
+		}
+	}
+	return nil
+}
+
+func Cleanup(imageName string) {
+	imageDir := filepath.Join(ImagesDir, imageName)
+	MergedDir := filepath.Join(imageDir, Merged)
+
+	syscall.Unmount(MergedDir, 0)
+
+	os.RemoveAll(MergedDir)
+	os.RemoveAll(filepath.Join(imageDir, work))
+	os.RemoveAll(filepath.Join(imageDir, upper))
+}
+
+func MountImage(imageName string) error {
 	layerList, err := getLayerList(imageName)
 	if err != nil {
 		if _, ok := err.(*ImageMissingError); ok { // image not found locally
 			fmt.Printf("Unable to find image %s locally\n", imageName)
 			if err := PullImage(imageName); err != nil {
-				return nil, err
+				return err
 			}
 			layerList, _ = getLayerList(imageName)
 		}
 	}
-	s := NewOverlayDirs(layerList)
-	if err := mountLayers(s); err != nil {
-		return nil, err
+	if err := createOverlayDirs(filepath.Join(ImagesDir, imageName)); err != nil {
+		return err
 	}
-	return s, nil
+	if err := mountLayers(layerList); err != nil {
+		return err
+	}
+	return nil
 }
 
-func mountLayers(s *OverlayDirs) error {
-	opts := fmt.Sprintf("index=off,lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(s.lower, ":"), s.upper, s.work)
-	if err := syscall.Mount("overlay", s.merged, "overlay", 0, opts); err != nil {
+func mountLayers(layerList []string) error {
+	imageDir := filepath.Dir(layerList[0])
+	opts := fmt.Sprintf("index=off,lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(layerList, ":"), filepath.Join(imageDir, upper), filepath.Join(imageDir, work))
+	if err := syscall.Mount("overlay", filepath.Join(imageDir, Merged), "overlay", 0, opts); err != nil {
 		return errors.Wrap(err, "unable to mount image")
 	}
 	return nil
 }
 
 func getLayerList(imageName string) ([]string, error) {
-	jsonFile, err := ioutil.ReadFile(imagesJsonFile)
+	imagesMap, err := getImagesMap()
 	if err != nil {
-		return nil, err
-	}
-	imagesMap := make(map[string][]string)
-
-	if err := json.Unmarshal(jsonFile, &imagesMap); err != nil {
 		return nil, err
 	}
 	layerList, ok := imagesMap[imageName]
@@ -96,4 +84,28 @@ func getLayerList(imageName string) ([]string, error) {
 	}
 
 	return layerList, nil
+}
+
+func getImagesMap() (map[string][]string, error) {
+	jsonFile, err := ioutil.ReadFile(imagesJsonFile)
+	if err != nil {
+		return nil, err
+	}
+	imagesMap := make(map[string][]string)
+	if err := json.Unmarshal(jsonFile, &imagesMap); err != nil {
+		return nil, err
+	}
+	return imagesMap, nil
+}
+
+func updateImagesJson(data map[string][]string) error {
+	f, err := os.OpenFile(imagesJsonFile, os.O_RDWR, 0744)
+	if err != nil {
+		return errors.Wrap(err, "error opening images json file")
+	}
+	jsonData, _ := json.Marshal(data)
+	if _, err := f.Write(jsonData); err != nil {
+		return errors.Wrap(err, "error writing to images json file")
+	}
+	return nil
 }
