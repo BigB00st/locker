@@ -101,18 +101,15 @@ func Child() error {
 	nonFlagArgs := pflag.Args()
 	fmt.Println("Running:", nonFlagArgs[0:])
 
-	//command to run
-	cmd := exec.Command("/bin/bash")
+	cmdList, env, err := image.ReadConfigFile(nonFlagArgs[0])
+	if err != nil {
+		return err
+	}
 
 	syscallsWhitelist, err := seccomp.ReadProfile(viper.GetString("security.seccomp"))
 	if err != nil {
 		return err
 	}
-
-	//pipe streams
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
 	if err := syscall.Sethostname([]byte(viper.GetString("name"))); err != nil {
 		return errors.Wrap(err, "couldn't set child's hostname")
@@ -123,12 +120,15 @@ func Child() error {
 	if err := syscall.Chroot("."); err != nil {
 		return errors.Wrap(err, "couldn't change root into container")
 	}
-	if err := os.Setenv("PATH", viper.GetString("path")); err != nil {
-		return errors.Wrap(err, "couldn't set PATH environment variable")
-	}
 	if err := os.Chdir("/root"); err != nil {
 		return errors.Wrap(err, "couldn't change directory to /root in container")
 	}
+
+	cmd := exec.Command(cmdList[0], cmdList[1:]...)
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = env
 
 	// mount proc for pids
 	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {

@@ -3,6 +3,7 @@ package image
 const (
 	ImagesDir       = "/var/lib/locker/"
 	imagesJsonFile  = ImagesDir + "images.json"
+	ConfigFile      = "config.json"
 	work            = "work"
 	upper           = "upper"
 	Merged          = "merged"

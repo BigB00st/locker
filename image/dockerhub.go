@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -37,13 +38,13 @@ func PullImage(imageName string) error {
 	client := &http.Client{}
 	authUrl := "https://auth.docker.io/token"
 	regService := "registry.docker.io"
-	resp, err := http.Get(registry)
+	regResp, err := http.Get(registry)
 	if err != nil {
 		return errors.Wrap(err, "error getting registry")
 	}
 
-	if resp.StatusCode == 401 {
-		authHeader := strings.Split(resp.Header["Www-Authenticate"][0], `"`)
+	if regResp.StatusCode == 401 {
+		authHeader := strings.Split(regResp.Header["Www-Authenticate"][0], `"`)
 		authUrl = authHeader[authUrlIndex]
 		if len(authHeader) > authHeaderIndex {
 			regService = authHeader[authHeaderIndex]
@@ -52,49 +53,54 @@ func PullImage(imageName string) error {
 		}
 	}
 
-	resp, err = http.Get(fmt.Sprintf("%s?service=%s&scope=repository:%s:pull", authUrl, regService, repository))
+	authResp, err := http.Get(fmt.Sprintf("%s?service=%s&scope=repository:%s:pull", authUrl, regService, repository))
 	if err != nil {
 		errors.Wrapf(err, "error getting repository %s", repository)
 	}
 
-	accessToken := toJson(resp)["token"].(string)
+	accessToken := toJson(authResp)["token"].(string)
 	authHead := map[string]string{
 		"Authorization": "Bearer " + accessToken,
 		"Accept":        "application/vnd.docker.distribution.manifest.v2+json",
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/manifests/%s", registry, repository, "latest"), nil)
+	manifestReq, err := http.NewRequest("GET", fmt.Sprintf("%s/%s/manifests/%s", registry, repository, "latest"), nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating manifest request")
 	}
-	setHeaders(req, authHead)
-	resp, err = client.Do(req)
+	setHeaders(manifestReq, authHead)
+	manifestResp, err := client.Do(manifestReq)
 	if err != nil {
 		return errors.Wrap(err, "error sending manifest request")
 	}
 
-	body := toJson(resp)
-	layers, ok := body["layers"]
+	manifestBody := toJson(manifestResp)
+	layers, ok := manifestBody["layers"]
 	if !ok {
 		return fmt.Errorf("Repository %s request invalid", repository)
 	}
-	config := body["config"].(map[string]interface{})["digest"].(string)
-	req, err = http.NewRequest("GET", fmt.Sprintf("%s%s/blobs/%s", registry, repository, config), nil)
+	config := manifestBody["config"].(map[string]interface{})["digest"].(string)
+	confReq, err := http.NewRequest("GET", fmt.Sprintf("%s%s/blobs/%s", registry, repository, config), nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating config request")
 	}
-	setHeaders(req, authHead)
-	resp, err = client.Do(req)
+	setHeaders(confReq, authHead)
+	confResp, err := client.Do(confReq)
 	if err != nil {
 		return errors.Wrap(err, "error receiving config request")
 	}
-	/*confRespBody, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading config response")
-	}*/
 
 	if err := os.Mkdir(imageDir, 0744); err != nil {
-		return errors.Wrapf(err, "error creating %s", imageDir)
+		return err
+	}
+
+	confFile, err := os.Create(filepath.Join(imageDir, ConfigFile))
+	if err != nil {
+		return errors.Wrap(err, "error creating config file")
+	}
+	defer confFile.Close()
+	if _, err := io.Copy(confFile, confResp.Body); err != nil {
+		return errors.Wrap(err, "couldn't write to config file")
 	}
 
 	var layerList []string

@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"gitlab.com/amit-yuval/locker/utils"
 )
 
 // define error for missing image
@@ -104,7 +105,7 @@ func getImagesMap() (map[string][]string, error) {
 	}
 	imagesMap := make(map[string][]string)
 	if err := json.Unmarshal(jsonFile, &imagesMap); err != nil {
-		return nil, errors.Wrap(err, "couldn't load images map to json file")
+		return nil, errors.Wrap(err, "couldn't load images map from json file")
 	}
 	return imagesMap, nil
 }
@@ -118,4 +119,27 @@ func updateImagesJson(data map[string][]string) error {
 		return errors.Wrap(err, "couldn't write to images json file")
 	}
 	return nil
+}
+
+func getImageConfig(imageName string) (map[string]interface{}, error) {
+	jsonFile, err := ioutil.ReadFile(filepath.Join(ImagesDir, imageName, ConfigFile))
+	if err != nil {
+		return nil, err
+	}
+	imageConfig := make(map[string]interface{})
+	if err := json.Unmarshal(jsonFile, &imageConfig); err != nil {
+		return nil, errors.Wrap(err, "couldn't load config from json file")
+	}
+	return imageConfig["config"].(map[string]interface{}), nil
+}
+
+// function returns env, cmdList from config file
+func ReadConfigFile(imageName string) ([]string, []string, error) {
+	imageConfig, err := getImageConfig(imageName)
+	if err != nil {
+		return nil, nil, err
+	}
+	env := utils.InterfaceArrToStrArr(imageConfig["Env"].([]interface{}))
+	cmd := utils.InterfaceArrToStrArr(imageConfig["Cmd"].([]interface{}))
+	return cmd, env, nil
 }

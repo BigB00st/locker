@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // Child is created in a new pid namespace, so it will gain pid 1
@@ -37,4 +39,27 @@ func CmdOut(binary string, arg ...string) (string, error) {
 func PrintAndExit(a ...interface{}) {
 	fmt.Println(a...)
 	os.Exit(1)
+}
+
+// function recieves an array of FOO=bar envs and sets
+func SetEnv(envList []string) error {
+	for _, env := range envList {
+		split := strings.SplitN(env, "=", 2)
+		if len(split) != 2 {
+			return errors.Errorf("env {%s} invalid", env)
+		}
+		if err := os.Setenv(split[0], split[1]); err != nil {
+			return errors.Wrapf(err, "couldn't set env {%s}", env)
+		}
+	}
+	return nil
+}
+
+// function gets interface array and return string array
+func InterfaceArrToStrArr(arr []interface{}) []string {
+	ret := make([]string, len(arr))
+	for i, v := range arr {
+		ret[i] = v.(string)
+	}
+	return ret
 }
