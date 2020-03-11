@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -41,18 +42,42 @@ func PrintAndExit(a ...interface{}) {
 	os.Exit(1)
 }
 
-// function recieves an array of FOO=bar envs and sets
-func SetEnv(envList []string) error {
+// function recieves an array of PATH=/path envs and returns list of paths only
+func getPATHList(envList []string) ([]string, error) {
+	var retList []string
 	for _, env := range envList {
 		split := strings.SplitN(env, "=", 2)
 		if len(split) != 2 {
-			return errors.Errorf("env {%s} invalid", env)
+			return nil, errors.Errorf("env {%s} invalid", env)
 		}
-		if err := os.Setenv(split[0], split[1]); err != nil {
-			return errors.Wrapf(err, "couldn't set env {%s}", env)
+		retList = append(retList, split[1])
+	}
+	return retList, nil
+}
+
+func GetExecutablePath(executable, basePath string, envList []string) (string, error) {
+	PATH, err := getPATHList(envList)
+	if err != nil {
+		return "", err
+	}
+	for _, v := range PATH {
+		curPath := filepath.Join(basePath, v)
+		if fileExists(curPath) {
+			return curPath, nil
 		}
 	}
-	return nil
+
+	return "", errors.New("couldn't find executable %s")
+}
+
+// returns true if file exists
+func fileExists(path string) bool {
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }
 
 // function gets interface array and return string array
@@ -62,4 +87,28 @@ func InterfaceArrToStrArr(arr []interface{}) []string {
 		ret[i] = v.(string)
 	}
 	return ret
+}
+
+func GetChildArgs(cmdList []string) []string {
+	ret := os.Args[1:]            //remove "locker"
+	ret = append(ret, cmdList...) // add cmdList
+	deleteElement("run", ret)     //remove "run"
+	return ret[:len(ret)-1]       //last item is duplicated for some reason, maybe bug in go?
+}
+
+func deleteElement(element string, a []string) {
+	i := findElement(element, a)
+	fmt.Println("BEFORE:", a)
+	a = append(a[:i], a[i+1:]...)
+}
+
+func findElement(element string, arr []string) int {
+	fmt.Println("SEARCHING", arr, "FOR", element)
+	for i := range arr {
+		if arr[i] == element {
+			fmt.Println("found", element, "index:", i)
+			return i
+		}
+	}
+	return -1
 }

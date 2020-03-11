@@ -16,6 +16,7 @@ import (
 	"gitlab.com/amit-yuval/locker/image"
 	"gitlab.com/amit-yuval/locker/network"
 	"gitlab.com/amit-yuval/locker/seccomp"
+	"gitlab.com/amit-yuval/locker/utils"
 )
 
 func RunRun(args []string) error {
@@ -30,36 +31,36 @@ func RunRun(args []string) error {
 
 // Parent function, forks and execs child, which runs the requested command
 func parent(args []string) error {
-	/*if apparmor.Enabled() {
-		if err := apparmor.InstallProfile(); err != nil {
-			return err
-		} else {
-			defer func() {
-				if err := apparmor.UnloadProfile(viper.GetString("aa-profile-path")); err != nil {
-					fmt.Println(err)
-				}
-			}()
-		}
-	}*/
-	//command to fork exec self
-	cmd := exec.Command("/proc/self/exe", args...)
+	// mount image
+	err := image.MountImage(args[0])
+	if err != nil {
+		return err
+	}
+	defer image.Cleanup(args[0])
+
+	cmdList, env, err := image.ReadConfigFile(args[0])
+	if err != nil {
+		return err
+	}
+
+	a := utils.GetChildArgs(cmdList)
+	fmt.Println("CHILD ARGS IN PARENT", a)
+	fmt.Println("OS ARGS IN PARENT", os.Args)
+
+	//command to fork exec selfcmdList
+	cmd := exec.Command("/proc/self/exe", a...)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Env = env
 
 	//namespace flags
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags:   syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS,
 		Unshareflags: syscall.CLONE_NEWNS,
 	}
-
-	err := image.MountImage(args[0])
-	if err != nil {
-		return err
-	}
-	defer image.Cleanup(args[0])
 
 	//configure cgroups
 	if err := cgroups.Set(); err != nil {
@@ -99,12 +100,12 @@ func parent(args []string) error {
 func Child() error {
 	config.Init()
 	nonFlagArgs := pflag.Args()
-	fmt.Println("Running:", nonFlagArgs[0:])
+	fmt.Println("Running:", nonFlagArgs[1:])
 
-	cmdList, env, err := image.ReadConfigFile(nonFlagArgs[0])
+	/*executablePath, err := utils.GetExecutablePath(cmdList[0], filepath.Join(image.ImagesDir, nonFlagArgs[1], image.Merged), env)
 	if err != nil {
 		return err
-	}
+	}*/
 
 	syscallsWhitelist, err := seccomp.ReadProfile(viper.GetString("security.seccomp"))
 	if err != nil {
@@ -124,11 +125,10 @@ func Child() error {
 		return errors.Wrap(err, "couldn't change directory to /root in container")
 	}
 
-	cmd := exec.Command(cmdList[0], cmdList[1:]...)
+	cmd := exec.Command(nonFlagArgs[1], nonFlagArgs[2:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	cmd.Env = env
 
 	// mount proc for pids
 	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {

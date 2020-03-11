@@ -12,8 +12,21 @@ import (
 	"gitlab.com/amit-yuval/locker/utils"
 )
 
+// function sets apparmor profile if enabled, returns path
+func Set(executable string) (string, error) {
+	// handle apparmor
+	if enabled() {
+		apparmorPath, err := installProfile(executable)
+		if err != nil {
+			return "", err
+		}
+		return apparmorPath, nil
+	}
+	return "", nil
+}
+
 // Function returns true if apparmor is enabled
-func Enabled() bool {
+func enabled() bool {
 	enabled, err := utils.CmdOut("aa-enabled")
 	if err != nil {
 		return false
@@ -33,7 +46,7 @@ func loadProfile(profilePath string) error {
 }
 
 // LoadProfile runs `apparmor_parser -R` on a specified apparmor profile to
-// unload the profile.
+// unload the profile, and deletes the file
 func UnloadProfile(profilePath string) error {
 	if err := exec.Command("apparmor_parser", "-R", profilePath).Run(); err != nil {
 		return errors.Wrap(err, "error unloading apparmor profile")
@@ -45,10 +58,10 @@ func UnloadProfile(profilePath string) error {
 }
 
 // Function installs default apparmor profile
-func InstallProfile() error {
-	f, err := ioutil.TempFile("", viper.GetString("security.aa-profile-name"))
+func installProfile(executable string) (string, error) {
+	f, err := ioutil.TempFile("", "locker")
 	if err != nil {
-		return errors.Wrap(err, "couldn't generate temp apparmor file")
+		return "", errors.Wrap(err, "couldn't generate temp apparmor file")
 	}
 	defer f.Close()
 
@@ -56,12 +69,12 @@ func InstallProfile() error {
 	viper.Set("aa-profile-path", profilePath)
 
 	if err := generateProfile(f); err != nil {
-		return errors.Wrap(err, "couldn't generate apparmor profile")
+		return "", errors.Wrap(err, "couldn't generate apparmor profile")
 	}
 	if err := loadProfile(profilePath); err != nil {
-		return errors.Wrap(err, "couldn't load apparmor profile")
+		return "", errors.Wrap(err, "couldn't load apparmor profile")
 	}
-	return nil
+	return "", nil
 }
 
 func generateProfile(f *os.File) error {
