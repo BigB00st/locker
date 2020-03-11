@@ -18,6 +18,7 @@ import (
 	"gitlab.com/amit-yuval/locker/network"
 	"gitlab.com/amit-yuval/locker/seccomp"
 	"gitlab.com/amit-yuval/locker/utils"
+	"golang.org/x/sys/unix"
 )
 
 func RunRun(args []string) error {
@@ -68,7 +69,7 @@ func parent(args []string) error {
 
 	//namespace flags
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags:   syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS,
+		Cloneflags:   syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS | unix.CLONE_NEWCGROUP | syscall.CLONE_NEWIPC,
 		Unshareflags: syscall.CLONE_NEWNS,
 	}
 
@@ -144,6 +145,11 @@ func Child() error {
 	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
 		return errors.Wrap(err, "couldn't mount /proc")
 	}
+
+	syscall.Mknod("/dev/null", syscall.S_IFCHR|0666, int(unix.Mkdev(1, 3)))
+	syscall.Chmod("/dev/null", 0666)
+	exec.Command("ldconfig").Run()
+	//specs.MountDefaults()
 
 	scmpFilter, err := seccomp.CreateFilter(syscallsWhitelist)
 	if err != nil {
