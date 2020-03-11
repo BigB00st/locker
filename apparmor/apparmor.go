@@ -7,26 +7,21 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gitlab.com/amit-yuval/locker/utils"
 )
 
-// function sets apparmor profile if enabled, returns path
+// function sets apparmor profile if enabled, returns path of apparmor profile
 func Set(executable string) (string, error) {
-	// handle apparmor
-	if enabled() {
-		apparmorPath, err := installProfile(executable)
-		if err != nil {
-			return "", err
-		}
-		return apparmorPath, nil
+	apparmorPath, err := installProfile(executable)
+	if err != nil {
+		return "", err
 	}
-	return "", nil
+	return apparmorPath, nil
 }
 
 // Function returns true if apparmor is enabled
-func enabled() bool {
+func Enabled() bool {
 	enabled, err := utils.CmdOut("aa-enabled")
 	if err != nil {
 		return false
@@ -68,31 +63,26 @@ func installProfile(executable string) (string, error) {
 	profilePath := f.Name()
 	viper.Set("aa-profile-path", profilePath)
 
-	if err := generateProfile(f); err != nil {
+	if err := generateProfile(f, executable); err != nil {
 		return "", errors.Wrap(err, "couldn't generate apparmor profile")
 	}
 	if err := loadProfile(profilePath); err != nil {
 		return "", errors.Wrap(err, "couldn't load apparmor profile")
 	}
-	return "", nil
+	return f.Name(), nil
 }
 
-func generateProfile(f *os.File) error {
-	ex, err := os.Executable()
-	if err != nil {
-		return err
+func generateProfile(f *os.File, executable string) error {
+	profile := template
+	profile = strings.Replace(profile, "$EXECUTABLE", executable, 1)
+	profile = strings.Replace(profile, "$CAPS", getCaps(), 1)
+
+	if _, err := f.Write([]byte(profile)); err != nil {
+		return errors.Wrap(err, "error writing to apparmor profile")
 	}
+	return nil
+}
 
-	profileBytes, err := ioutil.ReadFile(viper.GetString("security.aa-template"))
-	if err != nil {
-		return err
-	}
-
-	profile := string(profileBytes)
-	profile = strings.Replace(profile, "$EXECUTABLE", ex, 1)
-	profile = strings.Replace(profile, "$TEMP-FILE", f.Name(), 1)
-	profile = strings.Replace(profile, "$COMMAND", pflag.Arg(0), 1)
-
-	_, err = f.Write([]byte(profile))
-	return err
+func getCaps() string {
+	return "capability " + strings.ToLower(strings.ReplaceAll(strings.Join(viper.GetStringSlice("security.caps"), ",capability "), "CAP_", ""))
 }

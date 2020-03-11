@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"gitlab.com/amit-yuval/locker/apparmor"
 	"gitlab.com/amit-yuval/locker/caps"
 	"gitlab.com/amit-yuval/locker/cgroups"
 	"gitlab.com/amit-yuval/locker/config"
@@ -47,7 +48,14 @@ func parent(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(executablePath)
+
+	if apparmor.Enabled() {
+		profilePath, err := apparmor.Set(executablePath)
+		if err != nil {
+			return err
+		}
+		defer apparmor.UnloadProfile(profilePath)
+	}
 
 	//command to fork exec selfcmdList
 	cmd := exec.Command("/proc/self/exe", utils.GetChildArgs(cmdList)...)

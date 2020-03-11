@@ -11,8 +11,9 @@ import (
 
 func GetCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:   "locker [OPTIONS] COMMAND [ARG...]",
-		Short: "Locker is a docker-like runtime for containers",
+		Use:          "locker [OPTIONS] COMMAND [ARG...]",
+		Short:        "Locker is a docker-like runtime for containers",
+		SilenceUsage: true,
 	}
 
 	cmdList := [](*cobra.Command){
