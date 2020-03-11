@@ -13,4 +13,5 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.2
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
+	golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a
 )
