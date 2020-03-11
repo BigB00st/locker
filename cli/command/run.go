@@ -43,12 +43,14 @@ func parent(args []string) error {
 		return err
 	}
 
-	a := utils.GetChildArgs(cmdList)
-	fmt.Println("CHILD ARGS IN PARENT", a)
-	fmt.Println("OS ARGS IN PARENT", os.Args)
+	executablePath, err := utils.GetExecutablePath(cmdList[0], filepath.Join(image.ImagesDir, args[0], image.Merged), env)
+	if err != nil {
+		return err
+	}
+	fmt.Println(executablePath)
 
 	//command to fork exec selfcmdList
-	cmd := exec.Command("/proc/self/exe", a...)
+	cmd := exec.Command("/proc/self/exe", utils.GetChildArgs(cmdList)...)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin

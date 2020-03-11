@@ -50,7 +50,7 @@ func getPATHList(envList []string) ([]string, error) {
 		if len(split) != 2 {
 			return nil, errors.Errorf("env {%s} invalid", env)
 		}
-		retList = append(retList, split[1])
+		retList = append(retList, strings.Split(split[1], ":")...)
 	}
 	return retList, nil
 }
@@ -60,19 +60,41 @@ func GetExecutablePath(executable, basePath string, envList []string) (string, e
 	if err != nil {
 		return "", err
 	}
-	for _, v := range PATH {
-		curPath := filepath.Join(basePath, v)
-		if fileExists(curPath) {
+	if strings.Contains(executable, "/") { //absolute path
+		curPath := filepath.Join(basePath, executable)
+		if exists(curPath) {
 			return curPath, nil
+		}
+	} else { //relative path, loop over PATH to find
+		for _, v := range PATH {
+			curPath := filepath.Join(basePath, v, executable)
+			if exists(curPath) {
+				return curPath, nil
+			}
 		}
 	}
 
-	return "", errors.New("couldn't find executable %s")
+	return "", errors.Errorf("couldn't find executable %s", executable)
+}
+
+// function returns true if file/link/dir exists
+func exists(path string) bool {
+	return fileExists(path) || linkExists(path)
 }
 
 // returns true if file exists
 func fileExists(path string) bool {
 	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
+}
+
+// returns true if file exists
+func linkExists(path string) bool {
+	if _, err := os.Lstat(path); err != nil {
 		if os.IsNotExist(err) {
 			return false
 		}
@@ -98,15 +120,12 @@ func GetChildArgs(cmdList []string) []string {
 
 func deleteElement(element string, a []string) {
 	i := findElement(element, a)
-	fmt.Println("BEFORE:", a)
 	a = append(a[:i], a[i+1:]...)
 }
 
 func findElement(element string, arr []string) int {
-	fmt.Println("SEARCHING", arr, "FOR", element)
 	for i := range arr {
 		if arr[i] == element {
-			fmt.Println("found", element, "index:", i)
 			return i
 		}
 	}
