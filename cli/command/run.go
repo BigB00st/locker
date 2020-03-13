@@ -112,16 +112,10 @@ func Child() error {
 	nonFlagArgs := pflag.Args()
 	fmt.Println("Running:", nonFlagArgs[1:])
 
-	/*executablePath, err := utils.GetExecutablePath(cmdList[0], filepath.Join(image.ImagesDir, nonFlagArgs[1], image.Merged), env)
-	if err != nil {
-		return err
-	}*/
-
 	syscallsWhitelist, err := seccomp.ReadProfile(viper.GetString("security.seccomp"))
 	if err != nil {
 		return err
 	}
-
 	if err := syscall.Sethostname([]byte(viper.GetString("name"))); err != nil {
 		return errors.Wrap(err, "couldn't set child's hostname")
 	}
@@ -131,10 +125,6 @@ func Child() error {
 	if err := syscall.Chroot("."); err != nil {
 		return errors.Wrap(err, "couldn't change root into container")
 	}
-	if err := os.Chdir("/root"); err != nil {
-		return errors.Wrap(err, "couldn't change directory to /root in container")
-	}
-
 	cmd := exec.Command(nonFlagArgs[1], nonFlagArgs[2:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

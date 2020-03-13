@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"gitlab.com/amit-yuval/locker/cli/command"
 	"gitlab.com/amit-yuval/locker/cmd"
 	"gitlab.com/amit-yuval/locker/utils"
@@ -8,7 +10,9 @@ import (
 
 func main() {
 	if utils.IsChild() {
-		command.Child()
+		if err := command.Child(); err != nil {
+			fmt.Println(err)
+		}
 	} else {
 		cmd.Execute(cmd.GetCmd())
 	}
