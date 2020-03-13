@@ -62,44 +62,19 @@ func GetExecutablePath(executable, basePath string, envList []string) (string, e
 	}
 	if strings.Contains(executable, "/") { //absolute path
 		curPath := filepath.Join(basePath, executable)
-		if exists(curPath) {
+		if Exists(curPath) {
 			return curPath, nil
 		}
 	} else { //relative path, loop over PATH to find
 		for _, v := range PATH {
 			curPath := filepath.Join(basePath, v, executable)
-			if exists(curPath) {
+			if Exists(curPath) {
 				return curPath, nil
 			}
 		}
 	}
 
 	return "", errors.Errorf("couldn't find executable %s", executable)
-}
-
-// function returns true if file/link/dir exists
-func exists(path string) bool {
-	return fileExists(path) || linkExists(path)
-}
-
-// returns true if file exists
-func fileExists(path string) bool {
-	if _, err := os.Stat(path); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
-}
-
-// returns true if file exists
-func linkExists(path string) bool {
-	if _, err := os.Lstat(path); err != nil {
-		if os.IsNotExist(err) {
-			return false
-		}
-	}
-	return true
 }
 
 // function gets interface array and return string array

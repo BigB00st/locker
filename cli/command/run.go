@@ -15,9 +15,11 @@ import (
 	"gitlab.com/amit-yuval/locker/cgroups"
 	"gitlab.com/amit-yuval/locker/config"
 	"gitlab.com/amit-yuval/locker/image"
+	"gitlab.com/amit-yuval/locker/mount"
 	"gitlab.com/amit-yuval/locker/network"
 	"gitlab.com/amit-yuval/locker/seccomp"
 	"gitlab.com/amit-yuval/locker/utils"
+	"golang.org/x/sys/unix"
 )
 
 func RunRun(args []string) error {
@@ -34,10 +36,10 @@ func RunRun(args []string) error {
 func parent(args []string) error {
 	// mount image
 	err := image.MountImage(args[0])
+	defer image.Cleanup(args[0])
 	if err != nil {
 		return err
 	}
-	defer image.Cleanup(args[0])
 
 	cmdList, env, err := image.ReadConfigFile(args[0])
 	if err != nil {
@@ -68,8 +70,8 @@ func parent(args []string) error {
 
 	//namespace flags
 	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags:   syscall.CLONE_NEWUTS | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS,
-		Unshareflags: syscall.CLONE_NEWNS,
+		Cloneflags:   unix.CLONE_NEWUTS | unix.CLONE_NEWPID | unix.CLONE_NEWNS | unix.CLONE_NEWIPC | unix.CLONE_NEWCGROUP,
+		Unshareflags: unix.CLONE_NEWNS | unix.CLONE_NEWUTS | unix.CLONE_NEWIPC | unix.CLONE_NEWCGROUP,
 	}
 
 	//configure cgroups
@@ -130,9 +132,8 @@ func Child() error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	// mount proc for pids
-	if err := syscall.Mount("proc", "/proc", "proc", 0, ""); err != nil {
-		return errors.Wrap(err, "couldn't mount /proc")
+	if err := mount.MountDefaults(); err != nil {
+		return err
 	}
 
 	scmpFilter, err := seccomp.CreateFilter(syscallsWhitelist)
