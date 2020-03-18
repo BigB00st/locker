@@ -15,6 +15,7 @@ import (
 const (
 	BasePath        = "/sys/fs/cgroup/"
 	MemoryPath      = "memory"
+	PidsPath        = "pids"
 	CPUSetPath      = "cpuset" //Need to decide if we also want cpu control
 	swapinessFile   = "memory.swappiness"
 	byteLimitFile   = "memory.limit_in_bytes"
@@ -22,6 +23,7 @@ const (
 	cpusetLimitFile = "cpuset.cpus"
 	cpusetMemFile   = "cpuset.mems"
 	procsFile       = "cgroup.procs"
+	pidsFile        = "pids.max"
 )
 
 func init() {
@@ -30,6 +32,8 @@ func init() {
 	viper.Set("cgroups.cpuset-root-path", path.Join(BasePath, CPUSetPath))
 	viper.Set("cgroups.memory-path", path.Join(BasePath, MemoryPath, viper.GetString("cgroups.name")))
 	viper.Set("cgroups.memory-root-path", path.Join(BasePath, MemoryPath))
+	viper.Set("cgroups.pids-path", path.Join(BasePath, PidsPath, viper.GetString("cgroups.name")))
+	viper.Set("cgroups.pids-root-path", path.Join(BasePath, PidsPath))
 }
 
 //cgroup function, limits recourse usage of process
@@ -43,14 +47,19 @@ func Set() error {
 	if viper.GetBool("cgroups.memory-swappiness") {
 		swappiness = 1
 	}
+	maxPids := viper.GetString("cgroups.max-pids")
 
-	//make cgruops
+	//make memory directory
 	if err := os.Mkdir(viper.GetString("cgroups.memory-path"), os.ModeDir); err != nil {
 		return errors.Wrapf(err, "couldn't make memory's cgroup at %q", viper.GetString("cgroups.memory-path"))
 	}
-
+	//make cpuset directory
 	if err := os.Mkdir(viper.GetString("cgroups.cpuset-path"), os.ModeDir); err != nil {
 		return errors.Wrapf(err, "couldn't make cpuset's cgroup at %q", viper.GetString("cgroups.cpuset-path"))
+	}
+	//make pids directory
+	if err := os.Mkdir(viper.GetString("cgroups.pids-path"), os.ModeDir); err != nil {
+		return errors.Wrapf(err, "couldn't make pids' cgroup at %q", viper.GetString("cgroups.pids-path"))
 	}
 
 	//limit RAM and allow more for parent process
@@ -77,6 +86,11 @@ func Set() error {
 		return errors.Wrapf(err, "couldn't write %q to the cpuset's cpus file", cpusAllowed)
 	}
 
+	// limit amount of PIDS
+	if err := ioutil.WriteFile(path.Join(viper.GetString("cgroups.pids-path"), pidsFile), []byte(maxPids), 0700); err != nil {
+		return errors.Wrapf(err, "couldn't write %v to %v", maxPids, pidsFile)
+	}
+
 	//assign self to memory cgroup
 	if err := ioutil.WriteFile(path.Join(viper.GetString("cgroups.memory-path"), procsFile), []byte("0"), 0700); err != nil {
 		return errors.Wrap(err, "couldn't assign self to new memory cgroup")
@@ -85,7 +99,10 @@ func Set() error {
 	if err := ioutil.WriteFile(path.Join(viper.GetString("cgroups.cpuset-path"), procsFile), []byte("0"), 0700); err != nil {
 		return errors.Wrap(err, "couldn't assign self to new cpuset cgroup")
 	}
-
+	//assign self to pids cgroup
+	if err := ioutil.WriteFile(path.Join(viper.GetString("cgroups.pids-path"), procsFile), []byte("0"), 0700); err != nil {
+		return errors.Wrap(err, "couldn't assign self to new pids cgroup")
+	}
 	return nil
 }
 
@@ -94,10 +111,17 @@ func RemoveSelf() error {
 	if err := ioutil.WriteFile(path.Join(viper.GetString("cgroups.memory-root-path"), procsFile), []byte("0"), 0700); err != nil {
 		return errors.Wrap(err, "couldn't assign parent process to root memory cgroup")
 	}
+
 	//assign self to root cpuset cgroup
 	if err := ioutil.WriteFile(path.Join(viper.GetString("cgroups.cpuset-root-path"), procsFile), []byte("0"), 0700); err != nil {
 		return errors.Wrap(err, "couldn't assign parent process to root cpuset cgroup")
 	}
+
+	//assign self to root pids cgroup
+	if err := ioutil.WriteFile(path.Join(viper.GetString("cgroups.pids-root-path"), procsFile), []byte("0"), 0700); err != nil {
+		return errors.Wrap(err, "couldn't assign parent process to root pids cgroup")
+	}
+
 	bytesLimit, err := bytefmt.ToBytes(viper.GetString("cgroups.memory-limit"))
 	if err != nil {
 		return errors.Wrap(err, "couldn't parse memory-limit")

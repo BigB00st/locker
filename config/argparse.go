@@ -17,6 +17,7 @@ func parseArgs() {
 	pflag.String("memory-limit", "1GB", "RAM limit of container in bytes")
 	pflag.Bool("memory-swappiness", false, "Allow swappiness in container (boolean)")
 	pflag.String("cpus-allowed", "0", "Number of cpu cores to use in container")
+	pflag.String("max-pids", "100", "Maximum number of pids available in the container")
 
 	// network
 	pflag.String("network", "forwarding", "Type of network to use")
@@ -50,6 +51,9 @@ func bindFlagsToConfig() error {
 		return err
 	}
 	if err := bindFlagToConfig("cgroups.cpus-allowed", "cpus-allowed"); err != nil {
+		return err
+	}
+	if err := bindFlagToConfig("cgroups.max-pids", "max-pids"); err != nil {
 		return err
 	}
 
