@@ -84,5 +84,5 @@ func generateProfile(f *os.File, executable string) error {
 }
 
 func getCaps() string {
-	return "capability " + strings.ToLower(strings.ReplaceAll(strings.Join(viper.GetStringSlice("security.caps"), ",capability "), "CAP_", ""))
+	return "capability " + strings.ToLower(strings.ReplaceAll(strings.Join(viper.GetStringSlice("caps"), ",capability "), "CAP_", ""))
 }

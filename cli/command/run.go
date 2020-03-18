@@ -114,7 +114,7 @@ func Child() error {
 	nonFlagArgs := pflag.Args()
 	fmt.Println("Running:", nonFlagArgs[1:])
 
-	syscallsWhitelist, err := seccomp.ReadProfile(viper.GetString("security.seccomp"))
+	syscallsWhitelist, err := seccomp.ReadProfile(viper.GetString("seccomp"))
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func Child() error {
 		return err
 	}
 	defer scmpFilter.Release()
-	if err := caps.SetCaps(viper.GetStringSlice("security.caps")); err != nil {
+	if err := caps.SetCaps(viper.GetStringSlice("caps")); err != nil {
 		return errors.Wrap(err, "couldn't set capabilites of child")
 	}
 	cmd.Run()

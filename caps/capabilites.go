@@ -74,11 +74,11 @@ func normalizeLegacyCapabilities(caps []string) ([]string, error) {
 }
 
 func GetCapsList() ([]string, error) {
-	addCaps, err := normalizeLegacyCapabilities(viper.GetStringSlice("security.cap-add"))
+	addCaps, err := normalizeLegacyCapabilities(viper.GetStringSlice("cap-add"))
 	if err != nil {
 		return nil, errors.Wrap(err, "error parsing capabilites")
 	}
-	dropCaps, err := normalizeLegacyCapabilities(viper.GetStringSlice("security.cap-drop"))
+	dropCaps, err := normalizeLegacyCapabilities(viper.GetStringSlice("cap-drop"))
 	if err != nil {
 		return nil, errors.Wrap(err, "error parsing capabilites")
 	}
