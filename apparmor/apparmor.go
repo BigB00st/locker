@@ -7,10 +7,18 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"gitlab.com/amit-yuval/locker/utils"
 )
+
+// function sets apparmor profile if enabled, returns path of apparmor profile
+func Set(executable string) (string, error) {
+	apparmorPath, err := installProfile(executable)
+	if err != nil {
+		return "", err
+	}
+	return apparmorPath, nil
+}
 
 // Function returns true if apparmor is enabled
 func Enabled() bool {
@@ -33,7 +41,7 @@ func loadProfile(profilePath string) error {
 }
 
 // LoadProfile runs `apparmor_parser -R` on a specified apparmor profile to
-// unload the profile.
+// unload the profile, and deletes the file
 func UnloadProfile(profilePath string) error {
 	if err := exec.Command("apparmor_parser", "-R", profilePath).Run(); err != nil {
 		return errors.Wrap(err, "error unloading apparmor profile")
@@ -45,41 +53,36 @@ func UnloadProfile(profilePath string) error {
 }
 
 // Function installs default apparmor profile
-func InstallProfile() error {
-	f, err := ioutil.TempFile("", viper.GetString("security.aa-profile-name"))
+func installProfile(executable string) (string, error) {
+	f, err := ioutil.TempFile("", "locker")
 	if err != nil {
-		return errors.Wrap(err, "couldn't generate temp apparmor file")
+		return "", errors.Wrap(err, "couldn't generate temp apparmor file")
 	}
 	defer f.Close()
 
 	profilePath := f.Name()
 	viper.Set("aa-profile-path", profilePath)
 
-	if err := generateProfile(f); err != nil {
-		return errors.Wrap(err, "couldn't generate apparmor profile")
+	if err := generateProfile(f, executable); err != nil {
+		return "", errors.Wrap(err, "couldn't generate apparmor profile")
 	}
 	if err := loadProfile(profilePath); err != nil {
-		return errors.Wrap(err, "couldn't load apparmor profile")
+		return "", errors.Wrap(err, "couldn't load apparmor profile")
+	}
+	return f.Name(), nil
+}
+
+func generateProfile(f *os.File, executable string) error {
+	profile := template
+	profile = strings.Replace(profile, "$EXECUTABLE", executable, 1)
+	profile = strings.Replace(profile, "$CAPS", getCaps(), 1)
+
+	if _, err := f.Write([]byte(profile)); err != nil {
+		return errors.Wrap(err, "error writing to apparmor profile")
 	}
 	return nil
 }
 
-func generateProfile(f *os.File) error {
-	ex, err := os.Executable()
-	if err != nil {
-		return err
-	}
-
-	profileBytes, err := ioutil.ReadFile(viper.GetString("security.aa-template"))
-	if err != nil {
-		return err
-	}
-
-	profile := string(profileBytes)
-	profile = strings.Replace(profile, "$EXECUTABLE", ex, 1)
-	profile = strings.Replace(profile, "$TEMP-FILE", f.Name(), 1)
-	profile = strings.Replace(profile, "$COMMAND", pflag.Arg(0), 1)
-
-	_, err = f.Write([]byte(profile))
-	return err
+func getCaps() string {
+	return "capability " + strings.ToLower(strings.ReplaceAll(strings.Join(viper.GetStringSlice("caps"), ",capability "), "CAP_", ""))
 }

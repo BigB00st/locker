@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 // Child is created in a new pid namespace, so it will gain pid 1
@@ -37,4 +40,69 @@ func CmdOut(binary string, arg ...string) (string, error) {
 func PrintAndExit(a ...interface{}) {
 	fmt.Println(a...)
 	os.Exit(1)
+}
+
+// function recieves an array of PATH=/path envs and returns list of paths only
+func getPATHList(envList []string) ([]string, error) {
+	var retList []string
+	for _, env := range envList {
+		split := strings.SplitN(env, "=", 2)
+		if len(split) != 2 {
+			return nil, errors.Errorf("env {%s} invalid", env)
+		}
+		retList = append(retList, strings.Split(split[1], ":")...)
+	}
+	return retList, nil
+}
+
+func GetExecutablePath(executable, basePath string, envList []string) (string, error) {
+	PATH, err := getPATHList(envList)
+	if err != nil {
+		return "", err
+	}
+	if strings.Contains(executable, "/") { //absolute path
+		curPath := filepath.Join(basePath, executable)
+		if Exists(curPath) {
+			return curPath, nil
+		}
+	} else { //relative path, loop over PATH to find
+		for _, v := range PATH {
+			curPath := filepath.Join(basePath, v, executable)
+			if Exists(curPath) {
+				return curPath, nil
+			}
+		}
+	}
+
+	return "", errors.Errorf("couldn't find executable %s", executable)
+}
+
+// function gets interface array and return string array
+func InterfaceArrToStrArr(arr []interface{}) []string {
+	ret := make([]string, len(arr))
+	for i, v := range arr {
+		ret[i] = v.(string)
+	}
+	return ret
+}
+
+func GetChildArgs(cmdList []string) []string {
+	ret := os.Args[1:]            //remove "locker"
+	ret = append(ret, cmdList...) // add cmdList
+	deleteElement("run", ret)     //remove "run"
+	return ret[:len(ret)-1]       //last item is duplicated for some reason, maybe bug in go?
+}
+
+func deleteElement(element string, a []string) {
+	i := findElement(element, a)
+	a = append(a[:i], a[i+1:]...)
+}
+
+func findElement(element string, arr []string) int {
+	for i := range arr {
+		if arr[i] == element {
+			return i
+		}
+	}
+	return -1
 }
