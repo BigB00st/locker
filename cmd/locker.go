@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 	"gitlab.com/amit-yuval/locker/cli/command"
 	"gitlab.com/amit-yuval/locker/config"
@@ -46,10 +43,12 @@ func GetCmd() *cobra.Command {
 	return rootCmd
 }
 
-func Execute(cmd *cobra.Command) {
-	config.Init()
-	if err := cmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+func Execute(cmd *cobra.Command) error {
+	if err := config.Init(); err != nil {
+		return err
 	}
+	if err := cmd.Execute(); err != nil {
+		return err
+	}
+	return nil
 }
