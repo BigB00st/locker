@@ -95,8 +95,6 @@ func parent(args []string) error {
 		return errors.Wrap(err, "couldn't start child")
 	}
 
-	fmt.Println("Child PID:", cmd.Process.Pid)
-
 	if err := cgroups.RemoveSelf(); err != nil {
 		return err
 	}
@@ -113,11 +111,11 @@ func Child() error {
 	config.Init()
 	nonFlagArgs := pflag.Args()
 	fmt.Println("Running:", nonFlagArgs[1:])
-
 	syscallsWhitelist, err := seccomp.ReadProfile(viper.GetString("seccomp"))
 	if err != nil {
 		return err
 	}
+
 	if err := syscall.Sethostname([]byte(viper.GetString("name"))); err != nil {
 		return errors.Wrap(err, "couldn't set child's hostname")
 	}

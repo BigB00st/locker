@@ -10,7 +10,7 @@ func parseArgs() {
 
 	// cgroups
 	pflag.String("memory-limit", "1GB", "RAM limit of container in bytes")
-	pflag.Bool("memory-swappiness", false, "Allow swappiness in container (boolean)")
+	pflag.String("memory-swappiness", "30", "Memory swappiness in container")
 	pflag.String("cpus-allowed", "0", "Number of cpu cores to use in container")
 	pflag.String("max-pids", "100", "Maximum number of pids available in the container")
 

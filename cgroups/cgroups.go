@@ -13,41 +13,39 @@ import (
 )
 
 const (
-	BasePath        = "/sys/fs/cgroup/"
-	MemoryPath      = "memory"
-	PidsPath        = "pids"
-	CPUSetPath      = "cpuset" //Need to decide if we also want cpu control
-	swapinessFile   = "memory.swappiness"
-	byteLimitFile   = "memory.limit_in_bytes"
-	selfMinMemory   = 5000000 //required for loading the parent
-	cpusetLimitFile = "cpuset.cpus"
-	cpusetMemFile   = "cpuset.mems"
-	procsFile       = "cgroup.procs"
-	pidsFile        = "pids.max"
+	BasePath          = "/sys/fs/cgroup/"
+	MemoryPath        = "memory"
+	PidsPath          = "pids"
+	CPUSetPath        = "cpuset"
+	swapinessFile     = "memory.swappiness"
+	byteLimitFile     = "memory.limit_in_bytes"
+	kmemByteLimitFile = "memory.kmem.limit_in_bytes"
+	tcpByteLimitFile  = "memory.kmem.tcp.limit_in_bytes"
+	cpusetLimitFile   = "cpuset.cpus"
+	cpusetMemFile     = "cpuset.mems"
+	procsFile         = "cgroup.procs"
+	pidsFile          = "pids.max"
 )
 
 func init() {
-	viper.Set("name", "locker"+strconv.Itoa(os.Getpid()))
-	viper.Set("cpuset-path", path.Join(BasePath, CPUSetPath, viper.GetString("name")))
+	viper.Set("cgroup-name", "locker"+strconv.Itoa(os.Getpid()))
+	viper.Set("cpuset-path", path.Join(BasePath, CPUSetPath, viper.GetString("cgroup-name")))
 	viper.Set("cpuset-root-path", path.Join(BasePath, CPUSetPath))
-	viper.Set("memory-path", path.Join(BasePath, MemoryPath, viper.GetString("name")))
+	viper.Set("memory-path", path.Join(BasePath, MemoryPath, viper.GetString("cgroup-name")))
 	viper.Set("memory-root-path", path.Join(BasePath, MemoryPath))
-	viper.Set("pids-path", path.Join(BasePath, PidsPath, viper.GetString("name")))
+	viper.Set("pids-path", path.Join(BasePath, PidsPath, viper.GetString("cgroup-name")))
 	viper.Set("pids-root-path", path.Join(BasePath, PidsPath))
 }
 
 //cgroup function, limits recourse usage of process
 func Set() error {
 	cpusAllowed := viper.GetString("cpus-allowed")
-	bytesLimit, err := bytefmt.ToBytes(viper.GetString("memory-limit"))
+	swappiness := viper.GetString("memory-swappiness")
+	maxPids := viper.GetString("max-pids")
+	_, err := bytefmt.ToBytes(viper.GetString("memory-limit"))
 	if err != nil {
 		return errors.Wrap(err, "couldn't parse memory-limit")
 	}
-	swappiness := 0
-	if viper.GetBool("memory-swappiness") {
-		swappiness = 1
-	}
-	maxPids := viper.GetString("max-pids")
 
 	//make memory directory
 	if err := os.Mkdir(viper.GetString("memory-path"), os.ModeDir); err != nil {
@@ -62,13 +60,8 @@ func Set() error {
 		return errors.Wrapf(err, "couldn't make pids' cgroup at %q", viper.GetString("pids-path"))
 	}
 
-	//limit RAM and allow more for parent process
-	if err := ioutil.WriteFile(path.Join(viper.GetString("memory-path"), byteLimitFile), []byte(strconv.Itoa(int(bytesLimit+selfMinMemory))), 0700); err != nil {
-		return errors.Wrapf(err, "couldn't write %q to the the memory's byte-limit file", []byte(strconv.Itoa(int(bytesLimit+selfMinMemory))))
-	}
-
-	//disable swapiness
-	if err := ioutil.WriteFile(path.Join(viper.GetString("memory-path"), swapinessFile), []byte(strconv.Itoa(swappiness)), 0700); err != nil {
+	//set swapiness
+	if err := ioutil.WriteFile(path.Join(viper.GetString("memory-path"), swapinessFile), []byte(swappiness), 0700); err != nil {
 		return errors.Wrapf(err, "couldn't write %q to the the memory's swappiness file", swappiness)
 	}
 
@@ -122,14 +115,15 @@ func RemoveSelf() error {
 		return errors.Wrap(err, "couldn't assign parent process to root pids cgroup")
 	}
 
-	bytesLimit, err := bytefmt.ToBytes(viper.GetString("memory-limit"))
-	if err != nil {
-		return errors.Wrap(err, "couldn't parse memory-limit")
+	bytesLimit, _ := bytefmt.ToBytes(viper.GetString("memory-limit"))
+
+	//limit memory
+	for _, fileName := range []string{byteLimitFile, kmemByteLimitFile, tcpByteLimitFile} {
+		if err := ioutil.WriteFile(path.Join(viper.GetString("memory-path"), fileName), []byte(strconv.Itoa(int(bytesLimit))), 0700); err != nil {
+			return errors.Wrapf(err, "couldn't write %v to %v", []byte(strconv.Itoa(int(bytesLimit))), fileName)
+		}
 	}
-	//relimit RAM
-	if err := ioutil.WriteFile(path.Join(viper.GetString("memory-path"), byteLimitFile), []byte(strconv.Itoa(int(bytesLimit))), 0700); err != nil {
-		return errors.Wrapf(err, "couldn't write %q to the the memory's byte-limit file", []byte(strconv.Itoa(int(bytesLimit))))
-	}
+
 	return nil
 }
 
