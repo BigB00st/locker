@@ -14,6 +14,8 @@ func main() {
 			fmt.Println(err)
 		}
 	} else {
-		cmd.Execute(cmd.GetCmd())
+		if err := cmd.Execute(cmd.GetCmd()); err != nil {
+			fmt.Println(err)
+		}
 	}
 }
