@@ -51,8 +51,8 @@ exec:
 ## clean: Clean build files.
 clean:
 	rm -rf $(GOBIN)
-	chmod u+w -R $(GOBASE)/vendor
-	rm -rf $(GOBASE)/vendor
+	-chmod u+w -R $(GOBASE)/vendor
+	-rm -rf $(GOBASE)/vendor
 
 bin/$(PROJECTNAME): get
 	@echo "Building binary..."
