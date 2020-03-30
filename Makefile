@@ -31,7 +31,7 @@ build: bin/locker
 
 ## install: install the executable to /usr/local/bin and place the config files in their appropriate locations
 install:
-	[ ! -f bin/locker ] && $(MAKE) build || true
+	@-[ ! -f bin/locker ] && $(MAKE) build
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	install -Dm755 bin/$(PROJECTNAME) $(DESTDIR)$(PREFIX)/bin/$(PROJECTNAME)
 	mkdir -p $(DESTDIR)/etc/$(PROJECTNAME)
