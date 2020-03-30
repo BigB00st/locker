@@ -4,7 +4,10 @@ With locker, you can run linux containers.
 
 ## Prerequisites
 Required:
-* go-pie
+* libseccomp
+
+Build:
+* go-pie (>=1.12)
 
 Optional:
 * apparmor
