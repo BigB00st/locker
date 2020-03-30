@@ -53,7 +53,7 @@ exec:
 ## clean: Clean build files.
 clean:
 	rm -rf $(GOBIN)
-	-rm -rf $(GOBASE)/vendor
+	rm -rf $(GOBASE)/vendor
 
 bin/locker: get
 	@echo "Building binary..."
