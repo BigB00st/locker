@@ -24,12 +24,14 @@ options:
 ## get: Install missing dependencies. e.g; make get get=github.com/foo/bar
 get:
 	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get $(get)
+	chmod u+w -R $(GOBASE)/vendor
 
 ## build: Compile the binary, place it in ./bin
-build: bin/$(PROJECTNAME)
+build: bin/locker
 
 ## install: install the executable to /usr/local/bin and place the config files in their appropriate locations
-install: build
+install:
+	[ ! -f bin/locker ] && $(MAKE) build || true
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	install -Dm755 bin/$(PROJECTNAME) $(DESTDIR)$(PREFIX)/bin/$(PROJECTNAME)
 	mkdir -p $(DESTDIR)/etc/$(PROJECTNAME)
@@ -51,10 +53,9 @@ exec:
 ## clean: Clean build files.
 clean:
 	rm -rf $(GOBIN)
-	-chmod u+w -R $(GOBASE)/vendor
 	-rm -rf $(GOBASE)/vendor
 
-bin/$(PROJECTNAME): get
+bin/locker: get
 	@echo "Building binary..."
 	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build $(LDFLAGS) -o $(GOBIN)/$(PROJECTNAME) $(GOFILES)
 
