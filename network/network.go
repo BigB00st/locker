@@ -20,6 +20,10 @@ const (
 	ipRouteDefaultIndex = 0
 	ipRouteNameIndex    = 4
 	netnsDirectory      = "/var/run/netns/"
+	interfaceNameLen    = 11
+	interfacePrefix     = "veth"
+	nsNameLen           = 10
+	nsPrefix            = "ns-"
 )
 
 // SYS_SETNS syscall allows changing the namespace of the current process.
@@ -37,66 +41,95 @@ var SYS_SETNS = map[string]uintptr{
 	"s390x":    339,
 }[runtime.GOARCH]
 
-func CreateConnectivity() error {
-	nsName := "lockerNs"
-	vethName := "v-locker"
-	vethPeerName := "v-locker-peer"
+type NetConfig struct {
+	nsName string
+}
+
+func CreateConnectivity() (NetConfig, error) {
+	netConfig := NetConfig{}
+
+	netInterface, err := connectedInterfaceName()
+	if err != nil {
+		return netConfig, err
+	}
+
+	nsName, err := utils.GetUnique(nsPrefix, nsNameLen, utils.CreateUuid, netNsExists)
+	if err != nil {
+		return netConfig, err
+	}
+	netConfig.nsName = nsName
+
+	vethName, err := utils.GetUnique(interfacePrefix, nsNameLen, utils.CreateUuid, netNsExists)
+	if err != nil {
+		return netConfig, err
+	}
+	vethPeerName := vethName + "-p"
 	vethIp := "10.200.1.1"
 	vethCIDR := vethIp + "/24"
 	vethPeerCIDR := "10.200.1.2/24"
 	loopback := "lo"
 	masqueradeIp := "10.200.1.0/255.255.255.0"
-	netInterface, err := connectedInterfaceName()
-	if err != nil {
-		return err
-	}
 
 	// create network namespace
 	if err := addNetNs(nsName); err != nil {
-		return err
+		return netConfig, err
 	}
 
 	// create veth pair
 	if err := addVethPair(vethName, vethPeerName); err != nil {
-		return err
+		return netConfig, err
 	}
 
 	// assign peer to namespace
-	assignVethToNs(vethPeerName, nsName)
+	if err := assignVethToNs(vethPeerName, nsName); err != nil {
+		return netConfig, err
+	}
 
 	// setup ipv4 of veth
-	addIp(vethCIDR, vethName)
+	if err := addIp(vethCIDR, vethName); err != nil {
+		return netConfig, err
+	}
 	if err := setInterfaceUp(vethName); err != nil {
-		return err
+		return netConfig, err
 	}
 
 	// setup ipv4 of veth peer
-	addIpInsideNs(vethPeerCIDR, vethPeerName, nsName)
+	if err := addIpInsideNs(vethPeerCIDR, vethPeerName, nsName); err != nil {
+		return netConfig, err
+	}
 	if err := setInterfaceUpInsideNs(vethPeerName, nsName); err != nil {
-		return err
+		return netConfig, err
 	}
 	if err := setInterfaceUpInsideNs(loopback, nsName); err != nil {
-		return err
+		return netConfig, err
 	}
 
 	// add default gateway inside namespace
-	addDefaultGateway(nsName, vethIp)
+	if err := addDefaultGateway(nsName, vethIp); err != nil {
+		return netConfig, err
+	}
 
 	// enable ipv4 forwarding
 	if err := enableIpv4Forwarding(); err != nil {
-		return err
+		return netConfig, err
 	}
 
 	// set rules to allow connectivity
 	if err := setIptablesRules(masqueradeIp, netInterface, vethName); err != nil {
-		return err
+		return netConfig, err
 	}
 
 	if err := joinNsByName(nsName); err != nil {
-		return err
+		return netConfig, err
 	}
 
-	return nil
+	return netConfig, nil
+}
+
+func (c *NetConfig) Cleanup() {
+	if c.nsName != "" {
+		deleteNetNs(c.nsName)
+	}
 }
 
 func joinNsByName(nsName string) error {
@@ -126,6 +159,14 @@ func addNetNs(nsName string) error {
 	return nil
 }
 
+// Function deletes network namespace by the name of nsName
+func deleteNetNs(nsName string) error {
+	if err := exec.Command("ip", "netns", "delete", nsName).Run(); err != nil {
+		return errors.Wrapf(err, "couldn't add new network namespace %q", nsName)
+	}
+	return nil
+}
+
 // function return true if namespace exists
 func netNsExists(nsName string) bool {
 	return utils.FileExists(filepath.Join(netnsDirectory, nsName))
@@ -149,19 +190,25 @@ func netInterfaceExists(vethName string) bool {
 	return strings.Contains(out, vethName+"@")
 }
 
-func assignVethToNs(vethName, nsName string) {
-	cmd := exec.Command("ip", "link", "set", vethName, "netns", nsName)
-	cmd.Run()
+func assignVethToNs(vethName, nsName string) error {
+	if err := exec.Command("ip", "link", "set", vethName, "netns", nsName).Run(); err != nil {
+		return errors.Wrapf(err, "couldn't assign veth %v to ns %v", vethName, nsName)
+	}
+	return nil
 }
 
-func addIp(Ip, vethName string) {
-	cmd := exec.Command("ip", "addr", "add", Ip, "dev", vethName)
-	cmd.Run() //if fails, ip already exists
+func addIp(Ip, vethName string) error {
+	if err := exec.Command("ip", "addr", "add", Ip, "dev", vethName).Run(); err != nil {
+		return errors.Wrapf(err, "couldn't add ip to veth %v", vethName)
+	}
+	return nil
 }
 
-func addIpInsideNs(Ip, vethName, nsName string) {
-	cmd := exec.Command("ip", "netns", "exec", nsName, "ip", "addr", "add", Ip, "dev", vethName)
-	cmd.Run() //if fails, ip already exists
+func addIpInsideNs(Ip, vethName, nsName string) error {
+	if err := exec.Command("ip", "netns", "exec", nsName, "ip", "addr", "add", Ip, "dev", vethName).Run(); err != nil {
+		return errors.Wrapf(err, "couldn't add ip to %v inside ns %v", vethName, nsName)
+	}
+	return nil
 }
 
 func setInterfaceUpInsideNs(vethName, nsName string) error {
@@ -208,9 +255,11 @@ func addBridgeIp(bridgeName, Ip string) error {
 	return nil
 }
 
-func addDefaultGateway(nsName, Ip string) {
-	cmd := exec.Command("ip", "netns", "exec", nsName, "ip", "route", "add", "default", "via", Ip)
-	cmd.Run() // if fails, route already exists
+func addDefaultGateway(nsName, Ip string) error {
+	if err := exec.Command("ip", "netns", "exec", nsName, "ip", "route", "add", "default", "via", Ip).Run(); err != nil {
+		return errors.Wrapf(err, "couldn't add default gateway to %v", nsName)
+	}
+	return nil
 }
 
 func setIptablesRules(masqueradeIp, netInterface, vethName string) error {
