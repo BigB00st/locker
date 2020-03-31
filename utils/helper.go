@@ -134,3 +134,25 @@ func CreateUuid(length int) (string, error) {
 	}
 	return u.String()[:length], nil
 }
+
+func DirSize(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
+func PadSpaces(pad int, list ...string) string {
+	var ret string
+	for _, v := range list {
+		ret += v + strings.Repeat(" ", pad-len(v))
+	}
+	return ret
+}

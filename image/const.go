@@ -11,4 +11,5 @@ const (
 	authUrlIndex    = 1
 	authHeaderIndex = 3
 	idPrintLen      = 10
+	lsPrintPad      = 23
 )

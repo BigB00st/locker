@@ -7,7 +7,7 @@ import (
 	"gitlab.com/amit-yuval/locker/image"
 )
 
-func RunPull(args []string) error {
+func Pull(args []string) error {
 	if os.Geteuid() != 0 {
 		return errors.New("locker pull needs to be executed as root")
 	}

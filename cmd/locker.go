@@ -18,21 +18,28 @@ func GetCmd() *cobra.Command {
 			Use:   "run [OPTIONS] IMAGE [COMMAND] [ARG...]",
 			Short: "Run a container",
 			RunE: func(cmd *cobra.Command, args []string) error {
-				return command.RunRun(args)
+				return command.Run(args)
 			},
 		},
 		&cobra.Command{
 			Use:   "pull NAME",
 			Short: "Pull an image from docker hub",
 			RunE: func(cmd *cobra.Command, args []string) error {
-				return command.RunPull(args)
+				return command.Pull(args)
 			},
 		},
 		&cobra.Command{
 			Use:   "remove NAME",
 			Short: "Remove an image locally",
 			RunE: func(cmd *cobra.Command, args []string) error {
-				return command.RunRemove(args)
+				return command.Remove(args)
+			},
+		},
+		&cobra.Command{
+			Use:   "ls",
+			Short: "List local images",
+			RunE: func(cmd *cobra.Command, args []string) error {
+				return command.Ls(args)
 			},
 		},
 	}

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"code.cloudfoundry.org/bytefmt"
 	"github.com/pkg/errors"
 	"gitlab.com/amit-yuval/locker/utils"
 )
@@ -74,6 +75,22 @@ func MountImage(imageName string) error {
 		return err
 	}
 	return nil
+}
+
+func ListImages() (string, error) {
+	imagesMap, err := getImagesMap()
+	if err != nil {
+		return "", err
+	}
+	ret := utils.PadSpaces(lsPrintPad, "NAME", "SIZE") + "\n"
+	for k, _ := range imagesMap {
+		du, err := utils.DirSize(filepath.Join(ImagesDir, k))
+		if err != nil {
+			return "", errors.Wrap(err, "couldn't get disk usage of directory")
+		}
+		ret += utils.PadSpaces(lsPrintPad, k, bytefmt.ByteSize(uint64(du))) + "\n"
+	}
+	return ret, nil
 }
 
 func mountLayers(layerList []string) error {
