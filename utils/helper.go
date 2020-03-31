@@ -87,16 +87,20 @@ func InterfaceArrToStrArr(arr []interface{}) []string {
 	return ret
 }
 
-func GetChildArgs(cmdList []string) []string {
-	ret := os.Args[1:]            //remove "locker"
-	ret = append(ret, cmdList...) // add cmdList
-	deleteElement("run", ret)     //remove "run"
-	return ret[:len(ret)-1]       //last item is duplicated for some reason, maybe bug in go?
+// Gets arguments to pass to child
+// imageName - name of image to run, mergedDir - mount point of image, cmdList - command to run
+func GetChildArgs(imageName, mergedDir string, cmdList []string) []string {
+	ret := os.Args[1:]                  //remove "locker"
+	ret = deleteElement("run", ret)     //remove "run"
+	ret = deleteElement(imageName, ret) //remove image name
+	ret = append(ret, mergedDir)        //add merged dir
+	ret = append(ret, cmdList...)       //add cmdList
+	return ret
 }
 
-func deleteElement(element string, a []string) {
+func deleteElement(element string, a []string) []string {
 	i := findElement(element, a)
-	a = append(a[:i], a[i+1:]...)
+	return append(a[:i], a[i+1:]...)
 }
 
 func findElement(element string, arr []string) int {

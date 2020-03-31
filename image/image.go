@@ -14,6 +14,10 @@ import (
 	"gitlab.com/amit-yuval/locker/utils"
 )
 
+type ImageConfig struct {
+	Dir string
+}
+
 // define error for missing image
 type ImageMissingError struct {
 	msg string // description of error
@@ -33,48 +37,49 @@ func RemoveImage(imageName string) error {
 	if err := updateImagesJson(imagesMap); err != nil {
 		return err
 	}
-	imageDir := filepath.Join(ImagesDir, imageName)
+	imageDir := filepath.Join(imagesDir, imageName)
 	return os.RemoveAll(imageDir)
 }
 
-func createOverlayDirs(basedir string) error {
+func createOverlayDirs(baseDir string) error {
 	for _, d := range []string{work, upper, Merged} {
-		if err := os.Mkdir(filepath.Join(basedir, d), 0744); err != nil {
+		if err := os.Mkdir(filepath.Join(baseDir, d), 0744); err != nil {
 			return errors.Wrapf(err, "failed to create directory %s", d)
 		}
 	}
 	return nil
 }
 
-func Cleanup(imageName string) {
-	imageDir := filepath.Join(ImagesDir, imageName)
-	MergedDir := filepath.Join(imageDir, Merged)
-
-	syscall.Unmount(MergedDir, 0)
-
-	os.RemoveAll(MergedDir)
-	os.RemoveAll(filepath.Join(imageDir, work))
-	os.RemoveAll(filepath.Join(imageDir, upper))
-}
-
-func MountImage(imageName string) error {
+func MountImage(imageName string) (*ImageConfig, error) {
 	layerList, err := getLayerList(imageName)
 	if err != nil {
 		if _, ok := err.(*ImageMissingError); ok { // image not found locally
 			fmt.Printf("Unable to find image %s locally\n", imageName)
 			if err := PullImage(imageName); err != nil {
-				return err
+				return nil, err
 			}
 			layerList, _ = getLayerList(imageName)
 		}
 	}
-	if err := createOverlayDirs(filepath.Join(ImagesDir, imageName)); err != nil {
-		return err
+	baseDir, err := ioutil.TempDir(filepath.Join(imagesDir, imageName), fmt.Sprintf("asd"))
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating base directory for container")
 	}
-	if err := mountLayers(layerList); err != nil {
-		return err
+	imageConfig := &ImageConfig{
+		Dir: baseDir,
 	}
-	return nil
+	if err := createOverlayDirs(baseDir); err != nil {
+		return nil, err
+	}
+	if err := mountLayers(baseDir, layerList); err != nil {
+		return nil, err
+	}
+	return imageConfig, nil
+}
+
+func (c *ImageConfig) Cleanup() {
+	syscall.Unmount(filepath.Join(c.Dir, Merged), 0)
+	os.RemoveAll(c.Dir)
 }
 
 func ListImages() (string, error) {
@@ -84,7 +89,7 @@ func ListImages() (string, error) {
 	}
 	ret := utils.PadSpaces(lsPrintPad, "NAME", "SIZE") + "\n"
 	for k, _ := range imagesMap {
-		du, err := utils.DirSize(filepath.Join(ImagesDir, k))
+		du, err := utils.DirSize(filepath.Join(imagesDir, k))
 		if err != nil {
 			return "", errors.Wrap(err, "couldn't get disk usage of directory")
 		}
@@ -93,10 +98,9 @@ func ListImages() (string, error) {
 	return ret, nil
 }
 
-func mountLayers(layerList []string) error {
-	imageDir := filepath.Dir(layerList[0])
-	opts := fmt.Sprintf("index=off,lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(layerList, ":"), filepath.Join(imageDir, upper), filepath.Join(imageDir, work))
-	if err := syscall.Mount("overlay", filepath.Join(imageDir, Merged), "overlay", 0, opts); err != nil {
+func mountLayers(baseDir string, layerList []string) error {
+	opts := fmt.Sprintf("index=off,lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(layerList, ":"), filepath.Join(baseDir, upper), filepath.Join(baseDir, work))
+	if err := syscall.Mount("overlay", filepath.Join(baseDir, Merged), "overlay", 0, opts); err != nil {
 		return errors.Wrap(err, "unable to mount image")
 	}
 	return nil
@@ -139,7 +143,7 @@ func updateImagesJson(data map[string][]string) error {
 }
 
 func getImageConfig(imageName string) (map[string]interface{}, error) {
-	jsonFile, err := ioutil.ReadFile(filepath.Join(ImagesDir, imageName, ConfigFile))
+	jsonFile, err := ioutil.ReadFile(filepath.Join(imagesDir, imageName, ConfigFile))
 	if err != nil {
 		return nil, err
 	}

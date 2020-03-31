@@ -29,7 +29,7 @@ func setHeaders(req *http.Request, headers map[string]string) {
 }
 
 func PullImage(imageName string) error {
-	imageDir := filepath.Join(ImagesDir, imageName)
+	imageDir := filepath.Join(imagesDir, imageName)
 	if _, err := os.Stat(imageDir); !os.IsNotExist(err) {
 		return fmt.Errorf("Image %s exists", imageName)
 	}
