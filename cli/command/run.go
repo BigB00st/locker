@@ -87,9 +87,8 @@ func parent(args []string) error {
 		}
 	}()
 
-	if err := network.CreateConnectivity(); err != nil {
-		fmt.Println(err, " - internet connectivity will be disabled")
-	}
+	netConfig, _ := network.CreateConnectivity()
+	defer netConfig.Cleanup()
 
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, "couldn't start child")

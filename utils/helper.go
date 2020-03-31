@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
 )
 
@@ -105,4 +106,31 @@ func findElement(element string, arr []string) int {
 		}
 	}
 	return -1
+}
+
+type createFunc func(length int) (string, error)
+type isUniqueFunc func(arg string) bool
+
+func GetUnique(prefix string, length int, create createFunc, isUnique isUniqueFunc) (string, error) {
+	var ret string
+	createLen := length - len(prefix)
+	for {
+		curStr, err := create(createLen)
+		if err != nil {
+			return "", err
+		}
+		ret = prefix + curStr
+		if !isUnique(ret) {
+			break
+		}
+	}
+	return ret, nil
+}
+
+func CreateUuid(length int) (string, error) {
+	u, err := uuid.NewV4()
+	if err != nil {
+		return "", errors.Wrap(err, "couldn't create uuid")
+	}
+	return u.String()[:length], nil
 }
