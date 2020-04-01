@@ -47,17 +47,11 @@ func Set() error {
 		return errors.Wrap(err, "couldn't parse memory-limit")
 	}
 
-	//make memory directory
-	if err := os.Mkdir(viper.GetString("memory-path"), os.ModeDir); err != nil {
-		return errors.Wrapf(err, "couldn't make memory's cgroup at %q", viper.GetString("memory-path"))
-	}
-	//make cpuset directory
-	if err := os.Mkdir(viper.GetString("cpuset-path"), os.ModeDir); err != nil {
-		return errors.Wrapf(err, "couldn't make cpuset's cgroup at %q", viper.GetString("cpuset-path"))
-	}
-	//make pids directory
-	if err := os.Mkdir(viper.GetString("pids-path"), os.ModeDir); err != nil {
-		return errors.Wrapf(err, "couldn't make pids' cgroup at %q", viper.GetString("pids-path"))
+	// make cgroup directories
+	for _, fileName := range []string{viper.GetString("memory-path"), viper.GetString("cpuset-path"), viper.GetString("pids-path")} {
+		if err := os.Mkdir(fileName, os.ModeDir); err != nil {
+			return errors.Wrapf(err, "couldn't make cgroup directory %v", fileName)
+		}
 	}
 
 	//set swapiness
@@ -84,38 +78,23 @@ func Set() error {
 		return errors.Wrapf(err, "couldn't write %v to %v", maxPids, pidsFile)
 	}
 
-	//assign self to memory cgroup
-	if err := ioutil.WriteFile(path.Join(viper.GetString("memory-path"), procsFile), []byte("0"), 0700); err != nil {
-		return errors.Wrap(err, "couldn't assign self to new memory cgroup")
+	// assign self to cgroups by writing "0" to procs file
+	for _, fileName := range []string{viper.GetString("memory-path"), viper.GetString("cpuset-path"), viper.GetString("pids-path")} {
+		if err := ioutil.WriteFile(path.Join(fileName, procsFile), []byte("0"), 0700); err != nil {
+			return errors.Wrapf(err, "couldn't assign self to new %v cgroup", fileName)
+		}
 	}
-	//assign self to cpuset cgroup
-	if err := ioutil.WriteFile(path.Join(viper.GetString("cpuset-path"), procsFile), []byte("0"), 0700); err != nil {
-		return errors.Wrap(err, "couldn't assign self to new cpuset cgroup")
-	}
-	//assign self to pids cgroup
-	if err := ioutil.WriteFile(path.Join(viper.GetString("pids-path"), procsFile), []byte("0"), 0700); err != nil {
-		return errors.Wrap(err, "couldn't assign self to new pids cgroup")
-	}
+
 	return nil
 }
 
 func RemoveSelf() error {
+	bytesLimit, _ := bytefmt.ToBytes(viper.GetString("memory-limit"))
+
 	//assign self to root memory cgroup
 	if err := ioutil.WriteFile(path.Join(viper.GetString("memory-root-path"), procsFile), []byte("0"), 0700); err != nil {
 		return errors.Wrap(err, "couldn't assign parent process to root memory cgroup")
 	}
-
-	//assign self to root cpuset cgroup
-	if err := ioutil.WriteFile(path.Join(viper.GetString("cpuset-root-path"), procsFile), []byte("0"), 0700); err != nil {
-		return errors.Wrap(err, "couldn't assign parent process to root cpuset cgroup")
-	}
-
-	//assign self to root pids cgroup
-	if err := ioutil.WriteFile(path.Join(viper.GetString("pids-root-path"), procsFile), []byte("0"), 0700); err != nil {
-		return errors.Wrap(err, "couldn't assign parent process to root pids cgroup")
-	}
-
-	bytesLimit, _ := bytefmt.ToBytes(viper.GetString("memory-limit"))
 
 	//limit memory
 	for _, fileName := range []string{byteLimitFile, kmemByteLimitFile, tcpByteLimitFile} {
@@ -124,16 +103,24 @@ func RemoveSelf() error {
 		}
 	}
 
+	// assign self to root cgroups by writing "0" to procs file
+	for _, fileName := range []string{viper.GetString("memory-root-path"), viper.GetString("cpuset-root-path"), viper.GetString("pids-root-path")} {
+		if err := ioutil.WriteFile(path.Join(fileName, procsFile), []byte("0"), 0700); err != nil {
+			return errors.Wrapf(err, "couldn't assign self to root %v cgroup", fileName)
+		}
+	}
+
 	return nil
 }
 
-//cgroup function, limits recourse usage of process
+//cgroup function
 func Destruct() error {
-	if err := syscall.Rmdir(viper.GetString("memory-path")); err != nil {
-		return errors.Wrap(err, "couldn't remove memory cgroup directory")
+	// assign self to cgroups by writing "0" to procs file
+	for _, fileName := range []string{viper.GetString("memory-path"), viper.GetString("cpuset-path"), viper.GetString("pids-path")} {
+		if err := syscall.Rmdir(fileName); err != nil {
+			return errors.Wrapf(err, "couldn't remove %v", fileName)
+		}
 	}
-	if err := syscall.Rmdir(viper.GetString("cpuset-path")); err != nil {
-		return errors.Wrap(err, "couldn't remove cpuset cgroup directory")
-	}
+
 	return nil
 }

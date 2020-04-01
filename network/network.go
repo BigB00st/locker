@@ -59,7 +59,7 @@ func CreateConnectivity() (NetConfig, error) {
 	}
 	netConfig.nsName = nsName
 
-	vethName, err := utils.GetUnique(interfacePrefix, nsNameLen, utils.CreateUuid, netNsExists)
+	vethName, err := utils.GetUnique(interfacePrefix, nsNameLen, utils.CreateUuid, netInterfaceExists)
 	if err != nil {
 		return netConfig, err
 	}
