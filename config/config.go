@@ -6,6 +6,7 @@ import (
 	"gitlab.com/amit-yuval/locker/caps"
 )
 
+// Init reads args, calls setModifiedFlags
 func Init() error {
 	parseArgs()
 	viper.BindPFlags(pflag.CommandLine)
@@ -16,6 +17,7 @@ func Init() error {
 	return nil
 }
 
+// setModifiedFlags sets flags at runtime
 func setModifiedFlags() error {
 	if capList, err := caps.GetCapsList(); err != nil {
 		return err

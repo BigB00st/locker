@@ -73,6 +73,7 @@ func normalizeLegacyCapabilities(caps []string) ([]string, error) {
 	return normalized, nil
 }
 
+// GetCapsList returns a list of capabilities the container will have
 func GetCapsList() ([]string, error) {
 	addCaps, err := normalizeLegacyCapabilities(viper.GetStringSlice("cap-add"))
 	if err != nil {
@@ -108,7 +109,7 @@ func GetCapsList() ([]string, error) {
 	return caps, nil
 }
 
-// Function sets capabilites as only given list
+// SetCaps sets capabilites as only given list
 func SetCaps(capList []string) error {
 	caps, err := capability.NewPid2(0)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
 )
 
@@ -86,18 +87,24 @@ func InterfaceArrToStrArr(arr []interface{}) []string {
 	return ret
 }
 
-func GetChildArgs(cmdList []string) []string {
-	ret := os.Args[1:]            //remove "locker"
-	ret = append(ret, cmdList...) // add cmdList
-	deleteElement("run", ret)     //remove "run"
-	return ret[:len(ret)-1]       //last item is duplicated for some reason, maybe bug in go?
+// Gets arguments to pass to child
+// imageName - name of image to run, mergedDir - mount point of image, cmdList - command to run
+func GetChildArgs(imageName, mergedDir string, cmdList []string) []string {
+	ret := os.Args[1:]                  //remove "locker"
+	ret = deleteElement("run", ret)     //remove "run"
+	ret = deleteElement(imageName, ret) //remove image name
+	ret = append(ret, mergedDir)        //add merged dir
+	ret = append(ret, cmdList...)       //add cmdList
+	return ret
 }
 
-func deleteElement(element string, a []string) {
+// deleteElement deletes given element from list, expects item to exist
+func deleteElement(element string, a []string) []string {
 	i := findElement(element, a)
-	a = append(a[:i], a[i+1:]...)
+	return append(a[:i], a[i+1:]...)
 }
 
+// findElement return index of element if exists, -1 if doesnt
 func findElement(element string, arr []string) int {
 	for i := range arr {
 		if arr[i] == element {
@@ -105,4 +112,59 @@ func findElement(element string, arr []string) int {
 		}
 	}
 	return -1
+}
+
+type createFunc func(length int) (string, error)
+type isUniqueFunc func(arg string) bool
+
+// GetUnique returns a unique string
+// strings are created with create function
+// exclusivity is determined by isUnique function
+func GetUnique(prefix string, length int, create createFunc, isUnique isUniqueFunc) (string, error) {
+	var ret string
+	createLen := length - len(prefix)
+	for {
+		curStr, err := create(createLen)
+		if err != nil {
+			return "", err
+		}
+		ret = prefix + curStr
+		if !isUnique(ret) {
+			break
+		}
+	}
+	return ret, nil
+}
+
+// CreateUuid returns uuid of requested length
+func CreateUuid(length int) (string, error) {
+	u, err := uuid.NewV4()
+	if err != nil {
+		return "", errors.Wrap(err, "couldn't create uuid")
+	}
+	return u.String()[:length], nil
+}
+
+// DirSize returns size of directory (recursive)
+func DirSize(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	return size, err
+}
+
+// PadSpaces pads list of arguments with requested char
+func Pad(length int, char string, list ...string) string {
+	var ret string
+	for _, v := range list {
+		ret += v + strings.Repeat(" ", length-len(v))
+	}
+	return ret
 }

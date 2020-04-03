@@ -11,7 +11,7 @@ import (
 	"gitlab.com/amit-yuval/locker/utils"
 )
 
-// function sets apparmor profile if enabled, returns path of apparmor profile
+// Set sets apparmor profile if enabled, returns path of apparmor profile
 func Set(executable string) (string, error) {
 	apparmorPath, err := installProfile(executable)
 	if err != nil {
@@ -20,7 +20,7 @@ func Set(executable string) (string, error) {
 	return apparmorPath, nil
 }
 
-// Function returns true if apparmor is enabled
+// Enabled returns true if apparmor is enabled
 func Enabled() bool {
 	enabled, err := utils.CmdOut("aa-enabled")
 	if err != nil {
@@ -52,7 +52,7 @@ func UnloadProfile(profilePath string) error {
 	return nil
 }
 
-// Function installs default apparmor profile
+// installProfile installs default apparmor profile
 func installProfile(executable string) (string, error) {
 	f, err := ioutil.TempFile("", "locker")
 	if err != nil {
@@ -72,6 +72,7 @@ func installProfile(executable string) (string, error) {
 	return f.Name(), nil
 }
 
+// generateProfile generates apparmor profile from template
 func generateProfile(f *os.File, executable string) error {
 	profile := template
 	profile = strings.Replace(profile, "$EXECUTABLE", executable, 1)
@@ -83,6 +84,7 @@ func generateProfile(f *os.File, executable string) error {
 	return nil
 }
 
+// getCaps gets capabilities in format of apparmor profile
 func getCaps() string {
 	return "capability " + strings.ToLower(strings.ReplaceAll(strings.Join(viper.GetStringSlice("caps"), ",capability "), "CAP_", ""))
 }

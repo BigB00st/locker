@@ -1,8 +1,8 @@
 package image
 
 const (
-	ImagesDir       = "/var/lib/locker/"
-	imagesJsonFile  = ImagesDir + "images.json"
+	imagesDir       = "/var/lib/locker/"
+	imagesJsonFile  = imagesDir + "images.json"
 	ConfigFile      = "config.json"
 	work            = "work"
 	upper           = "upper"
@@ -11,4 +11,5 @@ const (
 	authUrlIndex    = 1
 	authHeaderIndex = 3
 	idPrintLen      = 10
+	lsPrintPad      = 23
 )

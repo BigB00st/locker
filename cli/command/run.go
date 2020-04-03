@@ -22,7 +22,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func RunRun(args []string) error {
+// Run runs container parent process
+func Run(args []string) error {
 	if os.Geteuid() != 0 {
 		return errors.New("locker run needs to be executed as root")
 	}
@@ -35,18 +36,19 @@ func RunRun(args []string) error {
 // Parent function, forks and execs child, which runs the requested command
 func parent(args []string) error {
 	// mount image
-	err := image.MountImage(args[0])
-	defer image.Cleanup(args[0])
+	imageConfig, err := image.MountImage(args[0])
 	if err != nil {
 		return err
 	}
+	defer imageConfig.Cleanup()
+	mergedDir := filepath.Join(imageConfig.Dir, image.Merged)
 
 	cmdList, env, err := image.ReadConfigFile(args[0])
 	if err != nil {
 		return err
 	}
 
-	executablePath, err := utils.GetExecutablePath(cmdList[0], filepath.Join(image.ImagesDir, args[0], image.Merged), env)
+	executablePath, err := utils.GetExecutablePath(cmdList[0], mergedDir, env)
 	if err != nil {
 		return err
 	}
@@ -59,8 +61,8 @@ func parent(args []string) error {
 		defer apparmor.UnloadProfile(profilePath)
 	}
 
-	//command to fork exec selfcmdList
-	cmd := exec.Command("/proc/self/exe", utils.GetChildArgs(cmdList)...)
+	//command to fork exec self
+	cmd := exec.Command("/proc/self/exe", utils.GetChildArgs(args[0], mergedDir, cmdList)...)
 
 	//pipe streams
 	cmd.Stdin = os.Stdin
@@ -87,9 +89,8 @@ func parent(args []string) error {
 		}
 	}()
 
-	if err := network.CreateConnectivity(); err != nil {
-		fmt.Println(err, " - internet connectivity will be disabled")
-	}
+	netConfig, _ := network.CreateConnectivity()
+	defer netConfig.Cleanup()
 
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, "couldn't start child")
@@ -110,7 +111,7 @@ func parent(args []string) error {
 func Child() error {
 	config.Init()
 	nonFlagArgs := pflag.Args()
-	fmt.Println("Running:", nonFlagArgs[1:])
+
 	syscallsWhitelist, err := seccomp.ReadProfile(viper.GetString("seccomp"))
 	if err != nil {
 		return err
@@ -119,7 +120,7 @@ func Child() error {
 	if err := syscall.Sethostname([]byte(viper.GetString("name"))); err != nil {
 		return errors.Wrap(err, "couldn't set child's hostname")
 	}
-	if err := syscall.Chdir(filepath.Join(image.ImagesDir, nonFlagArgs[0], image.Merged)); err != nil {
+	if err := syscall.Chdir(nonFlagArgs[0]); err != nil {
 		return errors.Wrap(err, "couldn't changedir into container")
 	}
 	if err := syscall.Chroot("."); err != nil {

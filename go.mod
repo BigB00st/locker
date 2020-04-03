@@ -7,6 +7,7 @@ require (
 	github.com/codeclysm/extract v2.2.0+incompatible
 	github.com/h2non/filetype v1.0.12 // indirect
 	github.com/juju/errors v0.0.0-20190930114154-d42613fe1ab9 // indirect
+	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
 	github.com/pkg/errors v0.9.1
 	github.com/seccomp/libseccomp-golang v0.9.1
 	github.com/spf13/cobra v0.0.6
