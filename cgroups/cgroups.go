@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"gitlab.com/amit-yuval/locker/utils"
 )
 
 const (
@@ -25,8 +26,11 @@ const (
 	cpusetMemFile     = "cpuset.mems"
 	procsFile         = "cgroup.procs"
 	pidsFile          = "pids.max"
+	minMemory         = 5000000
+	minPids           = 10
 )
 
+// init sets directory names for cgroups
 func init() {
 	viper.Set("cgroup-name", "locker"+strconv.Itoa(os.Getpid()))
 	viper.Set("cpuset-path", path.Join(BasePath, CPUSetPath, viper.GetString("cgroup-name")))
@@ -40,12 +44,13 @@ func init() {
 //cgroup function, limits recourse usage of process
 func Set() error {
 	cpusAllowed := viper.GetString("cpus-allowed")
-	swappiness := viper.GetString("memory-swappiness")
-	maxPids := viper.GetString("max-pids")
-	_, err := bytefmt.ToBytes(viper.GetString("memory-limit"))
+	swappiness := strconv.Itoa(viper.GetInt("memory-swappiness"))
+	maxPids := strconv.Itoa(utils.Max(viper.GetInt("max-pids"), minPids))
+	bytesLimit, err := bytefmt.ToBytes(viper.GetString("memory-limit"))
 	if err != nil {
 		return errors.Wrap(err, "couldn't parse memory-limit")
 	}
+	memoryLimit := strconv.Itoa(utils.Max(int(bytesLimit), minMemory))
 
 	// make cgroup directories
 	for _, fileName := range []string{viper.GetString("memory-path"), viper.GetString("cpuset-path"), viper.GetString("pids-path")} {
@@ -54,12 +59,12 @@ func Set() error {
 		}
 	}
 
-	//set swapiness
+	// set swappiness
 	if err := ioutil.WriteFile(path.Join(viper.GetString("memory-path"), swapinessFile), []byte(swappiness), 0700); err != nil {
 		return errors.Wrapf(err, "couldn't write %q to the the memory's swappiness file", swappiness)
 	}
 
-	//limit amount of CPUs allowes
+	// limit amount of CPUs allowes
 	mems, err := ioutil.ReadFile(path.Join(viper.GetString("cpuset-root-path"), cpusetMemFile))
 	if err != nil {
 		return errors.Wrapf(err, "couldn't read cpuset's default memory at %q", cpusetMemFile)
@@ -78,6 +83,13 @@ func Set() error {
 		return errors.Wrapf(err, "couldn't write %v to %v", maxPids, pidsFile)
 	}
 
+	// limit memory
+	for _, fileName := range []string{byteLimitFile, kmemByteLimitFile, tcpByteLimitFile} {
+		if err := ioutil.WriteFile(path.Join(viper.GetString("memory-path"), fileName), []byte(memoryLimit), 0700); err != nil {
+			return errors.Wrapf(err, "couldn't write %v to %v", []byte(memoryLimit), fileName)
+		}
+	}
+
 	// assign self to cgroups by writing "0" to procs file
 	for _, fileName := range []string{viper.GetString("memory-path"), viper.GetString("cpuset-path"), viper.GetString("pids-path")} {
 		if err := ioutil.WriteFile(path.Join(fileName, procsFile), []byte("0"), 0700); err != nil {
@@ -88,19 +100,11 @@ func Set() error {
 	return nil
 }
 
+// RemoveSelf moves current process to root cgroups
 func RemoveSelf() error {
-	bytesLimit, _ := bytefmt.ToBytes(viper.GetString("memory-limit"))
-
 	//assign self to root memory cgroup
 	if err := ioutil.WriteFile(path.Join(viper.GetString("memory-root-path"), procsFile), []byte("0"), 0700); err != nil {
 		return errors.Wrap(err, "couldn't assign parent process to root memory cgroup")
-	}
-
-	//limit memory
-	for _, fileName := range []string{byteLimitFile, kmemByteLimitFile, tcpByteLimitFile} {
-		if err := ioutil.WriteFile(path.Join(viper.GetString("memory-path"), fileName), []byte(strconv.Itoa(int(bytesLimit))), 0700); err != nil {
-			return errors.Wrapf(err, "couldn't write %v to %v", []byte(strconv.Itoa(int(bytesLimit))), fileName)
-		}
 	}
 
 	// assign self to root cgroups by writing "0" to procs file
@@ -113,7 +117,7 @@ func RemoveSelf() error {
 	return nil
 }
 
-//cgroup function
+// Destruct cleans cgroups
 func Destruct() error {
 	// assign self to cgroups by writing "0" to procs file
 	for _, fileName := range []string{viper.GetString("memory-path"), viper.GetString("cpuset-path"), viper.GetString("pids-path")} {
