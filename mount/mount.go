@@ -61,6 +61,7 @@ type Mount struct {
 	Options []string
 }
 
+// defaultMounts returns a list of default mounts to mount inside the container
 func defaultMounts() []Mount {
 	return []Mount{
 		{
@@ -108,6 +109,7 @@ func defaultMounts() []Mount {
 	}
 }
 
+// MountDefaults mounts the default mounts
 func MountDefaults() error {
 	for _, v := range defaultMounts() {
 		if !utils.FileExists(v.Destination) {
@@ -121,6 +123,7 @@ func MountDefaults() error {
 	return nil
 }
 
+// parseOptions parses given options, returns mount flag and mount options string
 func parseOptions(options []string) (int, string) {
 	var (
 		flag int

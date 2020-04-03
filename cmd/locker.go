@@ -6,6 +6,7 @@ import (
 	"gitlab.com/amit-yuval/locker/config"
 )
 
+// GetCmd returns cobra cmd of all commands
 func GetCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:          "locker [OPTIONS] COMMAND [ARG...]",
@@ -50,6 +51,7 @@ func GetCmd() *cobra.Command {
 	return rootCmd
 }
 
+// Execute runs cobra command
 func Execute(cmd *cobra.Command) error {
 	if err := config.Init(); err != nil {
 		return err

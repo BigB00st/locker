@@ -7,6 +7,7 @@ import (
 	"gitlab.com/amit-yuval/locker/image"
 )
 
+// Ls lists local images
 func Ls(args []string) error {
 	out, err := image.ListImages()
 	if err != nil {

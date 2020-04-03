@@ -98,11 +98,13 @@ func GetChildArgs(imageName, mergedDir string, cmdList []string) []string {
 	return ret
 }
 
+// deleteElement deletes given element from list, expects item to exist
 func deleteElement(element string, a []string) []string {
 	i := findElement(element, a)
 	return append(a[:i], a[i+1:]...)
 }
 
+// findElement return index of element if exists, -1 if doesnt
 func findElement(element string, arr []string) int {
 	for i := range arr {
 		if arr[i] == element {
@@ -115,6 +117,9 @@ func findElement(element string, arr []string) int {
 type createFunc func(length int) (string, error)
 type isUniqueFunc func(arg string) bool
 
+// GetUnique returns a unique string
+// strings are created with create function
+// exclusivity is determined by isUnique function
 func GetUnique(prefix string, length int, create createFunc, isUnique isUniqueFunc) (string, error) {
 	var ret string
 	createLen := length - len(prefix)
@@ -131,6 +136,7 @@ func GetUnique(prefix string, length int, create createFunc, isUnique isUniqueFu
 	return ret, nil
 }
 
+// CreateUuid returns uuid of requested length
 func CreateUuid(length int) (string, error) {
 	u, err := uuid.NewV4()
 	if err != nil {
@@ -139,6 +145,7 @@ func CreateUuid(length int) (string, error) {
 	return u.String()[:length], nil
 }
 
+// DirSize returns size of directory (recursive)
 func DirSize(path string) (int64, error) {
 	var size int64
 	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
@@ -153,10 +160,11 @@ func DirSize(path string) (int64, error) {
 	return size, err
 }
 
-func PadSpaces(pad int, list ...string) string {
+// PadSpaces pads list of arguments with requested char
+func Pad(length int, char string, list ...string) string {
 	var ret string
 	for _, v := range list {
-		ret += v + strings.Repeat(" ", pad-len(v))
+		ret += v + strings.Repeat(" ", length-len(v))
 	}
 	return ret
 }

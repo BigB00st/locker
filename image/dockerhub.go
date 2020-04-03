@@ -16,18 +16,21 @@ import (
 	"github.com/pkg/errors"
 )
 
+// toJson convert http respone to json
 func toJson(resp *http.Response) map[string]interface{} {
 	ret := make(map[string]interface{})
 	json.NewDecoder(resp.Body).Decode(&ret)
 	return ret
 }
 
+// setHeaders sets http request headers
 func setHeaders(req *http.Request, headers map[string]string) {
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
 }
 
+// PullImage pulls latest version of requested image from dockerhub
 func PullImage(imageName string) error {
 	imageDir := filepath.Join(imagesDir, imageName)
 	if _, err := os.Stat(imageDir); !os.IsNotExist(err) {
@@ -133,9 +136,7 @@ func PullImage(imageName string) error {
 		}
 
 		layerList = append(layerList, layerDir)
-
 	}
-
 	imagesMap, err := getImagesMap()
 	if err != nil {
 		return err

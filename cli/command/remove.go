@@ -7,6 +7,7 @@ import (
 	"gitlab.com/amit-yuval/locker/image"
 )
 
+// Remove removes image
 func Remove(args []string) error {
 	if os.Geteuid() != 0 {
 		return errors.New("locker remove needs to be executed as root")

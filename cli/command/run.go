@@ -22,6 +22,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// Run runs container parent process
 func Run(args []string) error {
 	if os.Geteuid() != 0 {
 		return errors.New("locker run needs to be executed as root")
