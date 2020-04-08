@@ -54,7 +54,7 @@ func parent(args []string) error {
 	}
 
 	if apparmor.Enabled() {
-		profilePath, err := apparmor.Set(executablePath)
+		profilePath, err := apparmor.Set(mergedDir, executablePath)
 		if err != nil {
 			return err
 		}

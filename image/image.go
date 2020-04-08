@@ -37,7 +37,7 @@ func MountImage(imageName string) (*ImageConfig, error) {
 			layerList, _ = getLayerList(imageName)
 		}
 	}
-	baseDir, err := ioutil.TempDir(filepath.Join(imagesDir, imageName), fmt.Sprintf("asd"))
+	baseDir, err := ioutil.TempDir(filepath.Join(imagesDir, imageName), "cntr-")
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating base directory for container")
 	}

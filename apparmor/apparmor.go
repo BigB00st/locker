@@ -12,8 +12,8 @@ import (
 )
 
 // Set sets apparmor profile if enabled, returns path of apparmor profile
-func Set(executable string) (string, error) {
-	apparmorPath, err := installProfile(executable)
+func Set(baseDir, executable string) (string, error) {
+	apparmorPath, err := installProfile(baseDir, executable)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +53,7 @@ func UnloadProfile(profilePath string) error {
 }
 
 // installProfile installs default apparmor profile
-func installProfile(executable string) (string, error) {
+func installProfile(baseDir, executable string) (string, error) {
 	f, err := ioutil.TempFile("", "locker")
 	if err != nil {
 		return "", errors.Wrap(err, "couldn't generate temp apparmor file")
@@ -63,7 +63,7 @@ func installProfile(executable string) (string, error) {
 	profilePath := f.Name()
 	viper.Set("aa-profile-path", profilePath)
 
-	if err := generateProfile(f, executable); err != nil {
+	if err := generateProfile(f, baseDir, executable); err != nil {
 		return "", errors.Wrap(err, "couldn't generate apparmor profile")
 	}
 	if err := loadProfile(profilePath); err != nil {
@@ -73,8 +73,9 @@ func installProfile(executable string) (string, error) {
 }
 
 // generateProfile generates apparmor profile from template
-func generateProfile(f *os.File, executable string) error {
+func generateProfile(f *os.File, baseDir, executable string) error {
 	profile := template
+	profile = strings.ReplaceAll(profile, "$BASE", baseDir)
 	profile = strings.Replace(profile, "$EXECUTABLE", executable, 1)
 	profile = strings.Replace(profile, "$CAPS", getCaps(), 1)
 
