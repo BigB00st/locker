@@ -11,11 +11,9 @@ import (
 func main() {
 	if utils.IsChild() {
 		if err := command.Child(); err != nil {
-			fmt.Println(err)
+			fmt.Println("Error:", err)
 		}
 	} else {
-		if err := cmd.Execute(cmd.GetCmd()); err != nil {
-			fmt.Println(err)
-		}
+		cmd.Execute(cmd.GetCmd())
 	}
 }
