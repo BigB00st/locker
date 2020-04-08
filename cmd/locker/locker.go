@@ -1,14 +1,16 @@
-package cmd
+package main
 
 import (
+	"locker/internal/cli/command"
+	"locker/internal/config"
+
 	"github.com/spf13/cobra"
-	"gitlab.com/amit-yuval/locker/cli/command"
-	"gitlab.com/amit-yuval/locker/config"
 )
 
 // GetCmd returns cobra cmd of all commands
 func GetCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
+
 		Use:          "locker [OPTIONS] COMMAND [ARG...]",
 		Short:        "Locker is a docker-like runtime for containers",
 		SilenceUsage: true,

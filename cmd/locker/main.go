@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
-	"gitlab.com/amit-yuval/locker/cli/command"
-	"gitlab.com/amit-yuval/locker/cmd"
-	"gitlab.com/amit-yuval/locker/signal"
-	"gitlab.com/amit-yuval/locker/utils"
+	"locker/internal/cli/command"
+
+	"locker/internal/signal"
+	"locker/internal/utils"
 )
 
 func main() {
@@ -16,6 +16,6 @@ func main() {
 			fmt.Println("Error:", err)
 		}
 	} else {
-		cmd.Execute(cmd.GetCmd())
+		Execute(GetCmd())
 	}
 }

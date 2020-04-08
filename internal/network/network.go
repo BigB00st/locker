@@ -6,8 +6,10 @@ import (
 	"runtime"
 	"strings"
 
+	"locker/internal/utils"
+	"locker/pkg/io"
+
 	"github.com/pkg/errors"
-	"gitlab.com/amit-yuval/locker/utils"
 	"golang.org/x/sys/unix"
 )
 
@@ -133,7 +135,7 @@ func (c *NetConfig) Cleanup() {
 
 // joinNsByName gets file descriptor of requested network namespace, calls setNs with fd
 func joinNsByName(nsName string) error {
-	nsHandle, err := utils.GetFdFromPath(netnsDirectory + nsName)
+	nsHandle, err := io.GetFdFromPath(netnsDirectory + nsName)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't get fd of network namespace %q", nsName)
 	}
@@ -166,7 +168,7 @@ func deleteNetNs(nsName string) error {
 
 // function return true if namespace exists
 func netNsExists(nsName string) bool {
-	return utils.FileExists(filepath.Join(netnsDirectory, nsName))
+	return io.FileExists(filepath.Join(netnsDirectory, nsName))
 }
 
 // addVethPair adds a virtual ethernet pair
@@ -184,7 +186,7 @@ func addVethPair(vethName, vethPeerName string) error {
 
 // function return true if Veth pair exists
 func netInterfaceExists(vethName string) bool {
-	out, _ := utils.CmdOut("ip", "link", "list")
+	out, _ := io.CmdOut("ip", "link", "list")
 	return strings.Contains(out, vethName+"@")
 }
 
@@ -279,7 +281,7 @@ func enableIpv4Forwarding() error {
 
 // connectedInterfaceName returns name of currently connected interface name
 func connectedInterfaceName() (string, error) {
-	out, _ := utils.CmdOut("ip", "-4", "route", "ls")
+	out, _ := io.CmdOut("ip", "-4", "route", "ls")
 
 	for _, line := range strings.Split(out, "\n") {
 		words := strings.Split(line, " ")

@@ -4,8 +4,9 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"locker/pkg/io"
+
 	"github.com/pkg/errors"
-	"gitlab.com/amit-yuval/locker/utils"
 	"golang.org/x/sys/unix"
 )
 
@@ -13,8 +14,8 @@ func CopyFiles(baseDir string) error {
 	files := []string{"/etc/resolv.conf"}
 	for _, file := range files {
 		src, dst := file, filepath.Join(baseDir, file)
-		utils.MkdirIfNotExist(filepath.Dir(dst))
-		if _, err := utils.Copy(src, dst); err != nil {
+		io.MkdirIfNotExist(filepath.Dir(dst))
+		if _, err := io.Copy(src, dst); err != nil {
 			return errors.Wrapf(err, "couldn't copy %v", src)
 		}
 	}

@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"locker/internal/utils"
+
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/pkg/errors"
-	"gitlab.com/amit-yuval/locker/utils"
 	"golang.org/x/sys/unix"
 )
 

@@ -1,9 +1,10 @@
 package config
 
 import (
+	"locker/internal/caps"
+
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
-	"gitlab.com/amit-yuval/locker/caps"
 )
 
 // Init reads args, calls setModifiedFlags
