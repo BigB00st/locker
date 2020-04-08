@@ -2,7 +2,10 @@ package utils
 
 import (
 	"os"
+	"path/filepath"
 	"syscall"
+
+	"github.com/pkg/errors"
 )
 
 // GetFdFromPath returns file descriptor from path
@@ -14,9 +17,16 @@ func GetFdFromPath(path string) (int, error) {
 	return fd, nil
 }
 
-// Exists returns true if file/link/dir exists
-func Exists(path string) bool {
-	return FileExists(path) || LinkExists(path)
+// ResolvePath returns full path if exists (resolving link if necessary)
+func resolvePath(path, baseDir string, envList []string) (string, error) {
+	fullPath := filepath.Join(baseDir, path)
+	if FileExists(fullPath) {
+		return fullPath, nil
+	} else if LinkExists(fullPath) {
+		path, _ = os.Readlink(fullPath)
+		return filepath.Join(baseDir, path), nil
+	}
+	return "", errors.Errorf("executable %s doesn't exist", path)
 }
 
 // FileExists true if file exists

@@ -38,11 +38,6 @@ func CmdOut(binary string, arg ...string) (string, error) {
 	return string(output), nil
 }
 
-func PrintAndExit(a ...interface{}) {
-	fmt.Println(a...)
-	os.Exit(1)
-}
-
 // function recieves an array of PATH=/path envs and returns list of paths only
 func getPATHList(envList []string) ([]string, error) {
 	var retList []string
@@ -56,21 +51,19 @@ func getPATHList(envList []string) ([]string, error) {
 	return retList, nil
 }
 
-func GetExecutablePath(executable, basePath string, envList []string) (string, error) {
+func GetExecutablePath(executable, baseDir string, envList []string) (string, error) {
 	PATH, err := getPATHList(envList)
 	if err != nil {
 		return "", err
 	}
 	if strings.Contains(executable, "/") { //absolute path
-		curPath := filepath.Join(basePath, executable)
-		if Exists(curPath) {
-			return curPath, nil
+		if path, err := resolvePath(executable, baseDir, envList); err == nil {
+			return path, nil
 		}
 	} else { //relative path, loop over PATH to find
-		for _, v := range PATH {
-			curPath := filepath.Join(basePath, v, executable)
-			if Exists(curPath) {
-				return curPath, nil
+		for _, pathEntry := range PATH {
+			if path, err := resolvePath(executable, filepath.Join(baseDir, pathEntry), envList); err == nil {
+				return path, nil
 			}
 		}
 	}
