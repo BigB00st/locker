@@ -7,6 +7,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// HandleSignals ignores some signals that stop a process
 func HandleSignals() {
 	c := make(chan os.Signal)
 	signal.Notify(c,

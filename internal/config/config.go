@@ -20,10 +20,10 @@ func Init() error {
 
 // setModifiedFlags sets flags at runtime
 func setModifiedFlags() error {
-	if capList, err := caps.GetCapsList(); err != nil {
+	capList, err := caps.GetCapsList()
+	if err != nil {
 		return err
-	} else {
-		viper.Set("caps", capList)
 	}
+	viper.Set("caps", capList)
 	return nil
 }

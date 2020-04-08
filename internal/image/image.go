@@ -15,11 +15,12 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// ImageConfig holds the mount point directory for an image
 type ImageConfig struct {
 	Dir string
 }
 
-// define error for missing image
+// ImageMissingError is an error for a missing image
 type ImageMissingError struct {
 	msg string // description of error
 }
@@ -71,7 +72,7 @@ func RemoveImage(imageName string) error {
 	return os.RemoveAll(imageDir)
 }
 
-// createOverlayDirs creates neccesary directories for overlay2 mount
+// createOverlayDirs creates necessary directories for overlay2 mount
 func createOverlayDirs(baseDir string) error {
 	for _, d := range []string{work, upper, Merged} {
 		if err := os.Mkdir(filepath.Join(baseDir, d), 0744); err != nil {
@@ -94,7 +95,7 @@ func ListImages() (string, error) {
 		return "", err
 	}
 	ret := utils.Pad(lsPrintPad, " ", "NAME", "SIZE") + "\n"
-	for k, _ := range imagesMap {
+	for k := range imagesMap {
 		du, err := utils.DirSize(filepath.Join(imagesDir, k))
 		if err != nil {
 			return "", errors.Wrap(err, "couldn't get disk usage of directory")
@@ -154,7 +155,7 @@ func updateImagesJson(data map[string][]string) error {
 
 // getImageConfig gets config for requested image
 func getImageConfig(imageName string) (map[string]interface{}, error) {
-	jsonFile, err := ioutil.ReadFile(filepath.Join(imagesDir, imageName, ConfigFile))
+	jsonFile, err := ioutil.ReadFile(filepath.Join(imagesDir, imageName, configFile))
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +166,7 @@ func getImageConfig(imageName string) (map[string]interface{}, error) {
 	return imageConfig["config"].(map[string]interface{}), nil
 }
 
-// function returns env, cmdList from config file
+// ReadConfigFile returns env, cmdList from config file
 func ReadConfigFile(imageName string) ([]string, []string, error) {
 	imageConfig, err := getImageConfig(imageName)
 	if err != nil {

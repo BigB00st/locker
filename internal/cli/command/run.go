@@ -10,7 +10,7 @@ import (
 	"gitlab.com/amit-yuval/locker/internal/caps"
 	"gitlab.com/amit-yuval/locker/internal/cgroups"
 	"gitlab.com/amit-yuval/locker/internal/config"
-	"gitlab.com/amit-yuval/locker/internal/enviroment"
+	"gitlab.com/amit-yuval/locker/internal/environment"
 	"gitlab.com/amit-yuval/locker/internal/image"
 	"gitlab.com/amit-yuval/locker/internal/mount"
 	"gitlab.com/amit-yuval/locker/internal/network"
@@ -34,7 +34,7 @@ func Run(args []string) error {
 	return parent(args)
 }
 
-// Parent function, forks and execs child, which runs the requested command
+// parent function, forks and execs child, which runs the requested command
 func parent(args []string) error {
 	// mount image
 	imageConfig, err := image.MountImage(args[0])
@@ -48,7 +48,7 @@ func parent(args []string) error {
 	if err != nil {
 		return err
 	}
-	env = enviroment.AppendEnv(env)
+	env = environment.AppendEnv(env)
 
 	executablePath, err := utils.GetExecutablePath(cmdList[0], mergedDir, env)
 	if err != nil {
@@ -116,11 +116,11 @@ func Child() error {
 	nonFlagArgs := pflag.Args()
 	baseDir, executable := nonFlagArgs[0], nonFlagArgs[1]
 
-	if err := enviroment.CopyFiles(baseDir); err != nil {
+	if err := environment.CopyFiles(baseDir); err != nil {
 		return err
 	}
 
-	unixsWhitelist, err := seccomp.ReadProfile(viper.GetString("seccomp"))
+	syscallWhitelist, err := seccomp.ReadProfile(viper.GetString("seccomp"))
 	if err != nil {
 		return err
 	}
@@ -143,9 +143,9 @@ func Child() error {
 		return err
 	}
 
-	enviroment.Setup()
+	environment.Setup()
 
-	scmpFilter, err := seccomp.CreateFilter(unixsWhitelist)
+	scmpFilter, err := seccomp.CreateFilter(syscallWhitelist)
 	if err != nil {
 		return err
 	}

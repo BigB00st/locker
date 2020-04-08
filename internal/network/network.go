@@ -41,10 +41,12 @@ var SYS_SETNS = map[string]uintptr{
 	"s390x":    339,
 }[runtime.GOARCH]
 
+// NetConfig holds the network namespace name of the container
 type NetConfig struct {
 	nsName string
 }
 
+// CreateConnectivity creates isolated network connectivity for the container
 func CreateConnectivity() (NetConfig, error) {
 	netConfig := NetConfig{}
 
@@ -126,7 +128,7 @@ func CreateConnectivity() (NetConfig, error) {
 	return netConfig, nil
 }
 
-// cleanup function for network - deletes the created network namespace
+// Cleanup deletes the created network namespace
 func (c *NetConfig) Cleanup() {
 	if c.nsName != "" {
 		deleteNetNs(c.nsName)

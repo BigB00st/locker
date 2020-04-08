@@ -12,7 +12,7 @@ import (
 
 var capabilityMap = make(map[string]capability.Cap)
 
-// init function for capabilities, maps capabilites strings to capabilites
+// init function for capabilities, maps capabilities strings to capabilities
 func init() {
 	last := capability.CAP_LAST_CAP
 	// hack for RHEL6 which has no /proc/sys/kernel/cap_last_cap
@@ -78,18 +78,18 @@ func normalizeLegacyCapabilities(caps []string) ([]string, error) {
 func GetCapsList() ([]string, error) {
 	addCaps, err := normalizeLegacyCapabilities(viper.GetStringSlice("cap-add"))
 	if err != nil {
-		return nil, errors.Wrap(err, "error parsing capabilites")
+		return nil, errors.Wrap(err, "error parsing capabilities")
 	}
 	dropCaps, err := normalizeLegacyCapabilities(viper.GetStringSlice("cap-drop"))
 	if err != nil {
-		return nil, errors.Wrap(err, "error parsing capabilites")
+		return nil, errors.Wrap(err, "error parsing capabilities")
 	}
 
 	var caps []string
 	switch {
 	case utils.StringInSlice(allCapabilities, addCaps):
 		// Add all capabilities except ones on dropCaps
-		for k, _ := range capabilityMap {
+		for k := range capabilityMap {
 			if !utils.StringInSlice(k, dropCaps) {
 				caps = append(caps, k)
 			}
@@ -110,7 +110,7 @@ func GetCapsList() ([]string, error) {
 	return caps, nil
 }
 
-// SetCaps sets capabilites as only given list
+// SetCaps sets capabilities as only given list
 func SetCaps(capList []string) error {
 	caps, err := capability.NewPid2(0)
 	if err != nil {

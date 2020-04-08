@@ -11,12 +11,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Child is created in a new pid namespace, so it will gain pid 1
+// IsChild is created in a new pid namespace, so it will gain pid 1
 func IsChild() bool {
 	return os.Getpid() == 1
 }
 
-// Function returns true if given string is in given list of strings
+// StringInSlice returns true if given string is in given list of strings
 func StringInSlice(str string, list []string) bool {
 	for _, curStr := range list {
 		if strings.Contains(curStr, str) {
@@ -26,7 +26,7 @@ func StringInSlice(str string, list []string) bool {
 	return false
 }
 
-// function recieves an array of PATH=/path envs and returns list of paths only
+// getPATHList receives an array of PATH=/path envs and returns list of paths only
 func getPATHList(envList []string) ([]string, error) {
 	var retList []string
 	for _, env := range envList {
@@ -39,6 +39,7 @@ func getPATHList(envList []string) ([]string, error) {
 	return retList, nil
 }
 
+// GetExecutablePath returns full executable path, searches PATH
 func GetExecutablePath(executable, baseDir string, envList []string) (string, error) {
 	PATH, err := getPATHList(envList)
 	if err != nil {
@@ -59,7 +60,7 @@ func GetExecutablePath(executable, baseDir string, envList []string) (string, er
 	return "", errors.Errorf("couldn't find executable %s", executable)
 }
 
-// function gets interface array and return string array
+// InterfaceArrToStrArr gets interface array and return string array
 func InterfaceArrToStrArr(arr []interface{}) []string {
 	ret := make([]string, len(arr))
 	for i, v := range arr {
@@ -68,7 +69,7 @@ func InterfaceArrToStrArr(arr []interface{}) []string {
 	return ret
 }
 
-// Gets arguments to pass to child
+// GetChildArgs gets arguments to pass to child process
 // imageName - name of image to run, mergedDir - mount point of image, cmdList - command to run
 func GetChildArgs(imageName, mergedDir string, cmdList []string) []string {
 	ret := os.Args[1:]                  //remove "locker"
@@ -141,7 +142,7 @@ func DirSize(path string) (int64, error) {
 	return size, err
 }
 
-// PadSpaces pads list of arguments with requested char
+// Pad pads list of arguments with requested char
 func Pad(length int, char string, list ...string) string {
 	var ret string
 	for _, v := range list {

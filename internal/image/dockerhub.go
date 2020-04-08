@@ -16,7 +16,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// toJson convert http respone to json
+// toJson convert http response to json
 func toJson(resp *http.Response) map[string]interface{} {
 	ret := make(map[string]interface{})
 	json.NewDecoder(resp.Body).Decode(&ret)
@@ -97,7 +97,7 @@ func PullImage(imageName string) error {
 		return err
 	}
 
-	confFile, err := os.Create(filepath.Join(imageDir, ConfigFile))
+	confFile, err := os.Create(filepath.Join(imageDir, configFile))
 	if err != nil {
 		return errors.Wrap(err, "error creating config file")
 	}

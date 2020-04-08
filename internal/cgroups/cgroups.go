@@ -15,10 +15,10 @@ import (
 )
 
 const (
-	BasePath          = "/sys/fs/cgroup/"
-	MemoryPath        = "memory"
-	PidsPath          = "pids"
-	CPUSetPath        = "cpuset"
+	basePath          = "/sys/fs/cgroup/"
+	memoryPath        = "memory"
+	pidsPath          = "pids"
+	cpuSetPath        = "cpuset"
 	swapinessFile     = "memory.swappiness"
 	byteLimitFile     = "memory.limit_in_bytes"
 	kmemByteLimitFile = "memory.kmem.limit_in_bytes"
@@ -34,15 +34,15 @@ const (
 // init sets directory names for cgroups
 func init() {
 	viper.Set("cgroup-name", "locker"+strconv.Itoa(os.Getpid()))
-	viper.Set("cpuset-path", path.Join(BasePath, CPUSetPath, viper.GetString("cgroup-name")))
-	viper.Set("cpuset-root-path", path.Join(BasePath, CPUSetPath))
-	viper.Set("memory-path", path.Join(BasePath, MemoryPath, viper.GetString("cgroup-name")))
-	viper.Set("memory-root-path", path.Join(BasePath, MemoryPath))
-	viper.Set("pids-path", path.Join(BasePath, PidsPath, viper.GetString("cgroup-name")))
-	viper.Set("pids-root-path", path.Join(BasePath, PidsPath))
+	viper.Set("cpuset-path", path.Join(basePath, cpuSetPath, viper.GetString("cgroup-name")))
+	viper.Set("cpuset-root-path", path.Join(basePath, cpuSetPath))
+	viper.Set("memory-path", path.Join(basePath, memoryPath, viper.GetString("cgroup-name")))
+	viper.Set("memory-root-path", path.Join(basePath, memoryPath))
+	viper.Set("pids-path", path.Join(basePath, pidsPath, viper.GetString("cgroup-name")))
+	viper.Set("pids-root-path", path.Join(basePath, pidsPath))
 }
 
-//cgroup function, limits recourse usage of process
+// Set limits recourse usage of process by setting cgroup rules
 func Set() error {
 	cpusAllowed := viper.GetString("cpus-allowed")
 	swappiness := strconv.Itoa(viper.GetInt("memory-swappiness"))

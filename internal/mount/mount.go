@@ -50,8 +50,8 @@ var flags = map[string]struct {
 	"nostrictatime": {true, STRICTATIME},
 }
 
-// Mount specifies a mount for a container.
-type Mount struct {
+// mount specifies a mount for a container.
+type mount struct {
 	// Destination is the absolute path where the mount will be placed in the container.
 	Destination string
 	// Type specifies the mount kind.
@@ -63,8 +63,8 @@ type Mount struct {
 }
 
 // defaultMounts returns a list of default mounts to mount inside the container
-func defaultMounts() []Mount {
-	return []Mount{
+func defaultMounts() []mount {
+	return []mount{
 		{
 			Destination: "/proc",
 			Type:        "proc",

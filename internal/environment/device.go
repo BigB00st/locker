@@ -1,4 +1,4 @@
-package enviroment
+package environment
 
 import "golang.org/x/sys/unix"
 

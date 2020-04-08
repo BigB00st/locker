@@ -1,4 +1,4 @@
-package enviroment
+package environment
 
 import (
 	"os/exec"
@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// CopyFiles copies default files from host to given base directory
 func CopyFiles(baseDir string) error {
 	files := []string{"/etc/resolv.conf"}
 	for _, file := range files {
@@ -22,7 +23,7 @@ func CopyFiles(baseDir string) error {
 	return nil
 }
 
-// Setup calls inner setup function for the enviroment
+// Setup calls inner setup function for the environment
 func Setup() {
 	createDevices()
 	configLinker()

@@ -18,9 +18,9 @@ func parseArgs() {
 	// security
 	pflag.String("seccomp", "/etc/locker/seccomp_default.json", "Seccomp profile path")
 
-	// capabilites
-	pflag.StringSlice("cap-add", nil, "Add linux capabilites")
-	pflag.StringSlice("cap-drop", nil, "Drop linux capabilites")
+	// capabilities
+	pflag.StringSlice("cap-add", nil, "Add linux capabilities")
+	pflag.StringSlice("cap-drop", nil, "Drop linux capabilities")
 
 	pflag.Parse()
 }

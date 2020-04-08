@@ -12,7 +12,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// function runs command and return output as string
+// CmdOut runs command and return output as string
 func CmdOut(binary string, arg ...string) (string, error) {
 	c := exec.Command(binary, arg...)
 

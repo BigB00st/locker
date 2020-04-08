@@ -31,7 +31,7 @@ func Enabled() bool {
 	return strings.Contains(enabled, "Yes")
 }
 
-// LoadProfile runs `apparmor_parser -Kr` on a specified apparmor profile to
+// loadProfile runs `apparmor_parser -Kr` on a specified apparmor profile to
 // replace the profile. The `-K` is necessary to make sure that apparmor_parser
 // doesn't try to write to a read-only filesystem.
 func loadProfile(profilePath string) error {
@@ -41,7 +41,7 @@ func loadProfile(profilePath string) error {
 	return nil
 }
 
-// LoadProfile runs `apparmor_parser -R` on a specified apparmor profile to
+// UnloadProfile runs `apparmor_parser -R` on a specified apparmor profile to
 // unload the profile, and deletes the file
 func UnloadProfile(profilePath string) error {
 	if err := exec.Command("apparmor_parser", "-R", profilePath).Run(); err != nil {
