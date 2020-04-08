@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -14,6 +13,7 @@ import (
 	"gitlab.com/amit-yuval/locker/caps"
 	"gitlab.com/amit-yuval/locker/cgroups"
 	"gitlab.com/amit-yuval/locker/config"
+	"gitlab.com/amit-yuval/locker/enviroment"
 	"gitlab.com/amit-yuval/locker/image"
 	"gitlab.com/amit-yuval/locker/mount"
 	"gitlab.com/amit-yuval/locker/network"
@@ -47,6 +47,7 @@ func parent(args []string) error {
 	if err != nil {
 		return err
 	}
+	env = enviroment.AppendEnv(env)
 
 	executablePath, err := utils.GetExecutablePath(cmdList[0], mergedDir, env)
 	if err != nil {
@@ -54,7 +55,7 @@ func parent(args []string) error {
 	}
 
 	if apparmor.Enabled() {
-		profilePath, err := apparmor.Set(executablePath)
+		profilePath, err := apparmor.Set(mergedDir, executablePath)
 		if err != nil {
 			return err
 		}
@@ -71,7 +72,7 @@ func parent(args []string) error {
 	cmd.Env = env
 
 	//namespace flags
-	cmd.SysProcAttr = &syscall.SysProcAttr{
+	cmd.SysProcAttr = &unix.SysProcAttr{
 		Cloneflags:   unix.CLONE_NEWUTS | unix.CLONE_NEWPID | unix.CLONE_NEWNS | unix.CLONE_NEWIPC | unix.CLONE_NEWCGROUP,
 		Unshareflags: unix.CLONE_NEWNS | unix.CLONE_NEWUTS | unix.CLONE_NEWIPC | unix.CLONE_NEWCGROUP,
 	}
@@ -109,24 +110,30 @@ func parent(args []string) error {
 
 // Child process, runs requested command
 func Child() error {
+
 	config.Init()
 	nonFlagArgs := pflag.Args()
+	baseDir, executable := nonFlagArgs[0], nonFlagArgs[1]
 
-	syscallsWhitelist, err := seccomp.ReadProfile(viper.GetString("seccomp"))
+	if err := enviroment.CopyFiles(baseDir); err != nil {
+		return err
+	}
+
+	unixsWhitelist, err := seccomp.ReadProfile(viper.GetString("seccomp"))
 	if err != nil {
 		return err
 	}
 
-	if err := syscall.Sethostname([]byte(viper.GetString("name"))); err != nil {
+	if err := unix.Sethostname([]byte(viper.GetString("name"))); err != nil {
 		return errors.Wrap(err, "couldn't set child's hostname")
 	}
-	if err := syscall.Chdir(nonFlagArgs[0]); err != nil {
+	if err := unix.Chdir(baseDir); err != nil {
 		return errors.Wrap(err, "couldn't changedir into container")
 	}
-	if err := syscall.Chroot("."); err != nil {
+	if err := unix.Chroot("."); err != nil {
 		return errors.Wrap(err, "couldn't change root into container")
 	}
-	cmd := exec.Command(nonFlagArgs[1], nonFlagArgs[2:]...)
+	cmd := exec.Command(executable, nonFlagArgs[2:]...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -135,7 +142,9 @@ func Child() error {
 		return err
 	}
 
-	scmpFilter, err := seccomp.CreateFilter(syscallsWhitelist)
+	enviroment.Setup()
+
+	scmpFilter, err := seccomp.CreateFilter(unixsWhitelist)
 	if err != nil {
 		return err
 	}

@@ -5,17 +5,17 @@ import (
 
 	"gitlab.com/amit-yuval/locker/cli/command"
 	"gitlab.com/amit-yuval/locker/cmd"
+	"gitlab.com/amit-yuval/locker/signal"
 	"gitlab.com/amit-yuval/locker/utils"
 )
 
 func main() {
+	go signal.HandleSignals()
 	if utils.IsChild() {
 		if err := command.Child(); err != nil {
-			fmt.Println(err)
+			fmt.Println("Error:", err)
 		}
 	} else {
-		if err := cmd.Execute(cmd.GetCmd()); err != nil {
-			fmt.Println(err)
-		}
+		cmd.Execute(cmd.GetCmd())
 	}
 }

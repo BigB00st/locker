@@ -30,7 +30,7 @@ func GetCmd() *cobra.Command {
 			},
 		},
 		&cobra.Command{
-			Use:   "remove NAME",
+			Use:   "rm NAME",
 			Short: "Remove an image locally",
 			RunE: func(cmd *cobra.Command, args []string) error {
 				return command.Remove(args)

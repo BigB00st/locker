@@ -3,9 +3,9 @@ package mount
 import (
 	"os"
 	"strings"
-	"syscall"
 
 	"gitlab.com/amit-yuval/locker/utils"
+	"golang.org/x/sys/unix"
 )
 
 //inspired by github.com/opencontainers/runtime-spec/specs-go and docker
@@ -116,7 +116,7 @@ func MountDefaults() error {
 			os.MkdirAll(v.Destination, os.ModeDir)
 		}
 		flag, options := parseOptions(v.Options)
-		if err := syscall.Mount(v.Source, v.Destination, v.Type, uintptr(flag), options); err != nil {
+		if err := unix.Mount(v.Source, v.Destination, v.Type, uintptr(flag), options); err != nil {
 			continue //TODO fix cgroup error
 		}
 	}
