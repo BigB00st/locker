@@ -19,7 +19,7 @@ func GetFdFromPath(path string) (int, error) {
 	return fd, nil
 }
 
-// ResolvePath returns full path if exists (resolving link if necessary)
+// resolvePath returns full path if exists (resolving link if necessary)
 func resolvePath(path, baseDir string, envList []string) (string, error) {
 	fullPath := filepath.Join(baseDir, path)
 	if FileExists(fullPath) {
@@ -51,6 +51,7 @@ func LinkExists(path string) bool {
 	return true
 }
 
+// Copy copies dst to src, returns number of bytes written
 func Copy(src, dst string) (int64, error) {
 	srcFileFileStat, err := os.Stat(src)
 	if err != nil {
@@ -75,4 +76,11 @@ func Copy(src, dst string) (int64, error) {
 
 	nBytes, err := io.Copy(dstFile, srcFile)
 	return nBytes, err
+}
+
+// MkdirIfNotExist creates given directory if it doesn't exist
+func MkdirIfNotExist(dir string) {
+	if !FileExists(dir) {
+		os.MkdirAll(dir, os.ModeDir)
+	}
 }

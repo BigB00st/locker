@@ -47,6 +47,7 @@ func parent(args []string) error {
 	if err != nil {
 		return err
 	}
+	env = enviroment.AppendEnv(env)
 
 	executablePath, err := utils.GetExecutablePath(cmdList[0], mergedDir, env)
 	if err != nil {
