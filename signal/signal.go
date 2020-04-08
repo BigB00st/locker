@@ -3,18 +3,19 @@ package signal
 import (
 	"os"
 	"os/signal"
-	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 func HandleSignals() {
 	c := make(chan os.Signal)
 	signal.Notify(c,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGHUP,
-		syscall.SIGABRT,
-		syscall.SIGSTOP,
-		syscall.SIGQUIT,
-		syscall.SIGCHLD,
+		unix.SIGINT,
+		unix.SIGTERM,
+		unix.SIGHUP,
+		unix.SIGABRT,
+		unix.SIGSTOP,
+		unix.SIGQUIT,
+		unix.SIGCHLD,
 	)
 }

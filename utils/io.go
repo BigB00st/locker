@@ -1,16 +1,18 @@
 package utils
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
-	"syscall"
 
 	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 )
 
 // GetFdFromPath returns file descriptor from path
 func GetFdFromPath(path string) (int, error) {
-	fd, err := syscall.Open(path, syscall.O_RDONLY, 0)
+	fd, err := unix.Open(path, unix.O_RDONLY, 0)
 	if err != nil {
 		return -1, err
 	}
@@ -47,4 +49,30 @@ func LinkExists(path string) bool {
 		}
 	}
 	return true
+}
+
+func Copy(src, dst string) (int64, error) {
+	srcFileFileStat, err := os.Stat(src)
+	if err != nil {
+		return 0, err
+	}
+
+	if !srcFileFileStat.Mode().IsRegular() {
+		return 0, fmt.Errorf("%s is not a regular file", src)
+	}
+
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return 0, err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return 0, err
+	}
+	defer dstFile.Close()
+
+	nBytes, err := io.Copy(dstFile, srcFile)
+	return nBytes, err
 }

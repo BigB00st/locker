@@ -5,12 +5,12 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"syscall"
 
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"gitlab.com/amit-yuval/locker/utils"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -121,7 +121,7 @@ func RemoveSelf() error {
 func Destruct() error {
 	// assign self to cgroups by writing "0" to procs file
 	for _, fileName := range []string{viper.GetString("memory-path"), viper.GetString("cpuset-path"), viper.GetString("pids-path")} {
-		if err := syscall.Rmdir(fileName); err != nil {
+		if err := unix.Rmdir(fileName); err != nil {
 			return errors.Wrapf(err, "couldn't remove %v", fileName)
 		}
 	}

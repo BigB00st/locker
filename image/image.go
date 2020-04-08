@@ -7,11 +7,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/pkg/errors"
 	"gitlab.com/amit-yuval/locker/utils"
+	"golang.org/x/sys/unix"
 )
 
 type ImageConfig struct {
@@ -82,7 +82,7 @@ func createOverlayDirs(baseDir string) error {
 
 // Cleanup unmounts image, removes changes
 func (c *ImageConfig) Cleanup() {
-	syscall.Unmount(filepath.Join(c.Dir, Merged), 0)
+	unix.Unmount(filepath.Join(c.Dir, Merged), 0)
 	os.RemoveAll(c.Dir)
 }
 
@@ -106,7 +106,7 @@ func ListImages() (string, error) {
 // mountLayers mounts given layers of image
 func mountLayers(baseDir string, layerList []string) error {
 	opts := fmt.Sprintf("index=off,lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(layerList, ":"), filepath.Join(baseDir, upper), filepath.Join(baseDir, work))
-	if err := syscall.Mount("overlay", filepath.Join(baseDir, Merged), "overlay", 0, opts); err != nil {
+	if err := unix.Mount("overlay", filepath.Join(baseDir, Merged), "overlay", 0, opts); err != nil {
 		return errors.Wrap(err, "unable to mount image")
 	}
 	return nil

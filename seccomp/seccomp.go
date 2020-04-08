@@ -3,10 +3,10 @@ package seccomp
 import (
 	"encoding/json"
 	"io/ioutil"
-	"syscall"
 
 	"github.com/pkg/errors"
 	libseccomp "github.com/seccomp/libseccomp-golang"
+	"golang.org/x/sys/unix"
 )
 
 // ReadProfile reads secoomp profile from given path, returns list of syscalls from profile
@@ -30,7 +30,7 @@ func ReadProfile(path string) ([]string, error) {
 // CreateFilter creates a seccomp filter that allows only given syscalls
 func CreateFilter(syscalls []string) (*libseccomp.ScmpFilter, error) {
 	// blacklist everything (EPERM - Permission not permitted)
-	scmpFilter, err := libseccomp.NewFilter(libseccomp.ActErrno.SetReturnCode(int16(syscall.EPERM)))
+	scmpFilter, err := libseccomp.NewFilter(libseccomp.ActErrno.SetReturnCode(int16(unix.EPERM)))
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create new seccomp filter")
 	}

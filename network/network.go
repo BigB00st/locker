@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 
 	"github.com/pkg/errors"
 	"gitlab.com/amit-yuval/locker/utils"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -137,12 +137,12 @@ func joinNsByName(nsName string) error {
 	if err != nil {
 		return errors.Wrapf(err, "couldn't get fd of network namespace %q", nsName)
 	}
-	return setNs(nsHandle, syscall.CLONE_NEWNET)
+	return setNs(nsHandle, unix.CLONE_NEWNET)
 }
 
 // setNs sets network namespace of current process to ns of file descriptor nsHandle
 func setNs(nsHandle int, nsType int) error {
-	if _, _, err := syscall.Syscall(SYS_SETNS, uintptr(nsHandle), uintptr(nsType), 0); err != 0 {
+	if _, _, err := unix.Syscall(SYS_SETNS, uintptr(nsHandle), uintptr(nsType), 0); err != 0 {
 		return errors.Wrap(err, "couldn't set network namespace")
 	}
 	return nil
