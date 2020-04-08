@@ -151,7 +151,7 @@ func Child() error {
 	}
 	defer scmpFilter.Release()
 	if err := caps.SetCaps(viper.GetStringSlice("caps")); err != nil {
-		return errors.Wrap(err, "couldn't set capabilites of child")
+		return errors.Wrap(err, "couldn't set capabilities of child")
 	}
 	cmd.Run()
 
