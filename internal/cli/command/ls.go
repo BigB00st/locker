@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"locker/internal/image"
+
 	"github.com/pkg/errors"
-	"gitlab.com/amit-yuval/locker/image"
 )
 
 // Ls lists local images

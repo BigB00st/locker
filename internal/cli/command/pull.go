@@ -3,8 +3,9 @@ package command
 import (
 	"os"
 
+	"locker/internal/image"
+
 	"github.com/pkg/errors"
-	"gitlab.com/amit-yuval/locker/image"
 )
 
 // Pull pulls image

@@ -6,9 +6,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"locker/pkg/io"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"gitlab.com/amit-yuval/locker/utils"
 )
 
 // Set sets apparmor profile if enabled, returns path of apparmor profile
@@ -22,7 +23,7 @@ func Set(baseDir, executable string) (string, error) {
 
 // Enabled returns true if apparmor is enabled
 func Enabled() bool {
-	enabled, err := utils.CmdOut("aa-enabled")
+	enabled, err := io.CmdOut("aa-enabled")
 	if err != nil {
 		return false
 	}

@@ -4,7 +4,8 @@ import (
 	"os"
 	"strings"
 
-	"gitlab.com/amit-yuval/locker/utils"
+	"locker/pkg/io"
+
 	"golang.org/x/sys/unix"
 )
 
@@ -112,7 +113,7 @@ func defaultMounts() []Mount {
 // MountDefaults mounts the default mounts
 func MountDefaults() error {
 	for _, v := range defaultMounts() {
-		if !utils.FileExists(v.Destination) {
+		if !io.FileExists(v.Destination) {
 			os.MkdirAll(v.Destination, os.ModeDir)
 		}
 		flag, options := parseOptions(v.Options)

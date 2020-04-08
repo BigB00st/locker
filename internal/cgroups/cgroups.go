@@ -6,10 +6,11 @@ import (
 	"path"
 	"strconv"
 
+	"locker/internal/utils"
+
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"gitlab.com/amit-yuval/locker/utils"
 	"golang.org/x/sys/unix"
 )
 

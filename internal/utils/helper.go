@@ -1,11 +1,11 @@
 package utils
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"locker/pkg/io"
 
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
@@ -24,18 +24,6 @@ func StringInSlice(str string, list []string) bool {
 		}
 	}
 	return false
-}
-
-// function runs command and return output as string
-func CmdOut(binary string, arg ...string) (string, error) {
-	c := exec.Command(binary, arg...)
-
-	output, err := c.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("running `%s %s` failed with output: %s\nerror: %v", c.Path, strings.Join(c.Args, " "), output, err)
-	}
-
-	return string(output), nil
 }
 
 // function recieves an array of PATH=/path envs and returns list of paths only
@@ -57,12 +45,12 @@ func GetExecutablePath(executable, baseDir string, envList []string) (string, er
 		return "", err
 	}
 	if strings.Contains(executable, "/") { //absolute path
-		if path, err := resolvePath(executable, baseDir, envList); err == nil {
+		if path, err := io.ResolvePath(executable, baseDir); err == nil {
 			return path, nil
 		}
 	} else { //relative path, loop over PATH to find
 		for _, pathEntry := range PATH {
-			if path, err := resolvePath(executable, filepath.Join(baseDir, pathEntry), envList); err == nil {
+			if path, err := io.ResolvePath(executable, filepath.Join(baseDir, pathEntry)); err == nil {
 				return path, nil
 			}
 		}

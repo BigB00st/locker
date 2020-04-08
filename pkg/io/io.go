@@ -1,14 +1,28 @@
-package utils
+package io
 
 import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
+
+// function runs command and return output as string
+func CmdOut(binary string, arg ...string) (string, error) {
+	c := exec.Command(binary, arg...)
+
+	output, err := c.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("running `%s %s` failed with output: %s\nerror: %v", c.Path, strings.Join(c.Args, " "), output, err)
+	}
+
+	return string(output), nil
+}
 
 // GetFdFromPath returns file descriptor from path
 func GetFdFromPath(path string) (int, error) {
@@ -19,8 +33,8 @@ func GetFdFromPath(path string) (int, error) {
 	return fd, nil
 }
 
-// resolvePath returns full path if exists (resolving link if necessary)
-func resolvePath(path, baseDir string, envList []string) (string, error) {
+// ResolvePath returns full path if exists (resolving link if necessary)
+func ResolvePath(path, baseDir string) (string, error) {
 	fullPath := filepath.Join(baseDir, path)
 	if FileExists(fullPath) {
 		return fullPath, nil
