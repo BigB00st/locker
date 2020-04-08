@@ -1,3 +1,6 @@
+[![Go Report Card](https://goreportcard.com/badge/gitlab.com/amit-yuval/locker)](https://goreportcard.com/report/gitlab.com/amit-yuval/locker)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)  
+
 # Locker
 
 With locker, you can run linux containers.
@@ -43,5 +46,4 @@ sudo pacman -U locker-{VER}-{PKGREL}-x86_64.pkg.tar.xz
 
 ## License
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)    
 This project is licensed under the GPL License, version 3 - see the [LICENSE](LICENSE) file for details.
