@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"locker/pkg/io"
+	"gitlab.com/amit-yuval/locker/pkg/io"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"

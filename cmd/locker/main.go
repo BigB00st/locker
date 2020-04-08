@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 
-	"locker/internal/cli/command"
+	"gitlab.com/amit-yuval/locker/internal/cli/command"
 
-	"locker/internal/signal"
-	"locker/internal/utils"
+	"gitlab.com/amit-yuval/locker/internal/signal"
+	"gitlab.com/amit-yuval/locker/internal/utils"
 )
 
 func main() {

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"locker/internal/caps"
+	"gitlab.com/amit-yuval/locker/internal/caps"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"

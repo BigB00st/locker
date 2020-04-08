@@ -3,7 +3,7 @@ package caps
 import (
 	"strings"
 
-	"locker/internal/utils"
+	"gitlab.com/amit-yuval/locker/internal/utils"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"

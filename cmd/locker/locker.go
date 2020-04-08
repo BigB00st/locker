@@ -1,8 +1,8 @@
 package main
 
 import (
-	"locker/internal/cli/command"
-	"locker/internal/config"
+	"gitlab.com/amit-yuval/locker/internal/cli/command"
+	"gitlab.com/amit-yuval/locker/internal/config"
 
 	"github.com/spf13/cobra"
 )

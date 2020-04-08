@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"locker/internal/utils"
+	"gitlab.com/amit-yuval/locker/internal/utils"
 
 	"code.cloudfoundry.org/bytefmt"
 	"github.com/pkg/errors"

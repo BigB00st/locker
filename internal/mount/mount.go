@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"locker/pkg/io"
+	"gitlab.com/amit-yuval/locker/pkg/io"
 
 	"golang.org/x/sys/unix"
 )

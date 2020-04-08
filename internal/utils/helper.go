@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"locker/pkg/io"
+	"gitlab.com/amit-yuval/locker/pkg/io"
 
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"

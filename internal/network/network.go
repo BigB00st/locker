@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"strings"
 
-	"locker/internal/utils"
-	"locker/pkg/io"
+	"gitlab.com/amit-yuval/locker/internal/utils"
+	"gitlab.com/amit-yuval/locker/pkg/io"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
