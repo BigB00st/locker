@@ -8,7 +8,6 @@ GOBASE := $(shell pwd)
 GOCMD := $(GOBASE)/cmd/locker
 GOPATH := $(GOBASE)/vendor:$(GOBASE)
 GOBIN := $(GOBASE)/bin
-GOFILES := $(wildcard *.go)
 
 LDFLAGS=-trimpath -mod=readonly
 
@@ -58,7 +57,7 @@ clean:
 
 bin/locker: get
 	@echo "Building binary..."
-	cd $(GOCMD) && GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build $(LDFLAGS) -o $(GOBIN)/$(PROJECTNAME) $(GOFILES)
+	cd $(GOCMD) && GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build $(LDFLAGS) -o $(GOBIN)/$(PROJECTNAME)
 
 go-clean:
 	@echo "Cleaning build cache"
