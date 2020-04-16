@@ -5,11 +5,12 @@ PREFIX = /usr/local
 
 # Go related variables.
 GOBASE := $(shell pwd)
+GOCMD := $(GOBASE)/cmd/locker
 GOPATH := $(GOBASE)/vendor:$(GOBASE)
 GOBIN := $(GOBASE)/bin
 GOFILES := $(wildcard *.go)
 
-LDFLAGS=-trimpath
+LDFLAGS=-trimpath -mod=readonly
 
 all: options build
 
@@ -23,7 +24,7 @@ options:
 
 ## get: Install missing dependencies. e.g; make get get=github.com/foo/bar
 get:
-	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get $(get)
+	cd $(GOCMD) && GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get $(get)
 	chmod u+w -R $(GOBASE)/vendor
 
 ## build: Compile the binary, place it in ./bin
@@ -57,7 +58,7 @@ clean:
 
 bin/locker: get
 	@echo "Building binary..."
-	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build $(LDFLAGS) -o $(GOBIN)/$(PROJECTNAME) $(GOFILES)
+	cd $(GOCMD) && GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build $(LDFLAGS) -o $(GOBIN)/$(PROJECTNAME) $(GOFILES)
 
 go-clean:
 	@echo "Cleaning build cache"
@@ -67,3 +68,5 @@ go-clean:
 help: Makefile
 	@echo "Choose a command run in make:"
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
+
+.PHONY: all options get build install uninstall clean go-clean help
