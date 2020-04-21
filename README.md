@@ -18,10 +18,13 @@ Optional:
 * iproute2
 * iptables
 
+## Notes
+ * Supports only interactive containers (e.g. shell)
+ * Uses only the latest version of an image from dockerhub
+
 ## Installation
 
 Locker is still in development. In addition, locker needs to make changes to your network interfaces, routing table, and firewall rules. Therefore, run at your own risk.
-
 ### From Source
 
 ```
