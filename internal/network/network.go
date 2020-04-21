@@ -49,7 +49,6 @@ type NetConfig struct {
 
 // CreateConnectivity creates isolated network connectivity for the container
 func CreateConnectivity() (NetConfig, error) {
-	//fmt.Println(generateValidSubnet())
 	netConfig := NetConfig{}
 
 	netInterface, err := connectedInterfaceName()
@@ -135,7 +134,7 @@ func CreateConnectivity() (NetConfig, error) {
 	return netConfig, nil
 }
 
-// Cleanup deletes the created network namespace
+// Cleanup deletes the created network namespace, and updates subnets file
 func (c *NetConfig) Cleanup() {
 	if c.nsName != "" {
 		deleteNetNs(c.nsName)
@@ -256,16 +255,6 @@ func setIptablesRules(masqueradeIp, netInterface, vethName string) error {
 	if err := exec.Command("iptables", "-P", "FORWARD", "DROP").Run(); err != nil {
 		return errors.Wrap(err, "couldn't policy DROP by default")
 	}
-
-	// Flush forward rules,
-	//if err := exec.Command("iptables", "-F", "FORWARD").Run(); err != nil {
-	//	return errors.Wrap(err, "couldn't flush forward rules")
-	//}
-
-	// Flush nat rules.
-	//if err := exec.Command("iptables", "-t", "nat", "-F").Run(); err != nil {
-	//	return errors.Wrap(err, "couldn't Flush nat rules")
-	//}
 
 	// allow masquerading
 	if err := exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", masqueradeIp, "-o", netInterface, "-j", "MASQUERADE").Run(); err != nil {
