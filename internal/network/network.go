@@ -3,14 +3,13 @@ package network
 import (
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"gitlab.com/amit-yuval/locker/internal/utils"
 	"gitlab.com/amit-yuval/locker/pkg/io"
 
 	"github.com/pkg/errors"
-	"golang.org/x/sys/unix"
+	"github.com/vishvananda/netns"
 )
 
 const (
@@ -26,25 +25,11 @@ const (
 	nsPrefix            = "ns-"
 )
 
-// SYS_SETNS syscall allows changing the namespace of the current process.
-var SYS_SETNS = map[string]uintptr{
-	"386":      346,
-	"amd64":    308,
-	"arm64":    268,
-	"arm":      375,
-	"mips":     4344,
-	"mipsle":   4344,
-	"mips64le": 4344,
-	"ppc64":    350,
-	"ppc64le":  350,
-	"riscv64":  268,
-	"s390x":    339,
-}[runtime.GOARCH]
-
 // NetConfig holds the network namespace name of the container
 type NetConfig struct {
-	nsName string
-	sub    *subnet
+	sub                                          *subnet
+	nsName, masqueradeIp, netInterface, vethName string
+	prevNs                                       netns.NsHandle
 }
 
 // CreateConnectivity creates isolated network connectivity for the container
@@ -77,6 +62,15 @@ func CreateConnectivity() (NetConfig, error) {
 	vethPeerCIDR := netConfig.sub.nextIp() + "/24"
 	loopback := "lo"
 	masqueradeIp := netConfig.sub.toString() + "/255.255.255.0"
+	curNs, err := netns.Get()
+	if err != nil {
+		return netConfig, errors.Wrap(err, "couldn't get current ns")
+	}
+
+	netConfig.masqueradeIp = masqueradeIp
+	netConfig.netInterface = netInterface
+	netConfig.vethName = vethName
+	netConfig.prevNs = curNs
 
 	// create network namespace
 	if err := addNetNs(nsName); err != nil {
@@ -136,8 +130,10 @@ func CreateConnectivity() (NetConfig, error) {
 
 // Cleanup deletes the created network namespace, and updates subnets file
 func (c *NetConfig) Cleanup() {
+	netns.Set(c.prevNs)
 	if c.nsName != "" {
 		deleteNetNs(c.nsName)
+		clearIptablesRules(c.masqueradeIp, c.netInterface, c.vethName)
 	}
 	if c.sub != nil {
 		c.sub.destruct()
@@ -146,19 +142,11 @@ func (c *NetConfig) Cleanup() {
 
 // joinNsByName gets file descriptor of requested network namespace, calls setNs with fd
 func joinNsByName(nsName string) error {
-	nsHandle, err := io.GetFdFromPath(netnsDirectory + nsName)
+	nsHandle, err := netns.GetFromName(nsName)
 	if err != nil {
 		return errors.Wrapf(err, "couldn't get fd of network namespace %q", nsName)
 	}
-	return setNs(nsHandle, unix.CLONE_NEWNET)
-}
-
-// setNs sets network namespace of current process to ns of file descriptor nsHandle
-func setNs(nsHandle int, nsType int) error {
-	if _, _, err := unix.Syscall(SYS_SETNS, uintptr(nsHandle), uintptr(nsType), 0); err != 0 {
-		return errors.Wrap(err, "couldn't set network namespace")
-	}
-	return nil
+	return netns.Set(nsHandle)
 }
 
 // addNetNs creates a network namespace of name nsName
@@ -246,29 +234,6 @@ func addDefaultGateway(nsName, Ip string) error {
 	if err := exec.Command("ip", "netns", "exec", nsName, "ip", "route", "add", "default", "via", Ip).Run(); err != nil {
 		return errors.Wrapf(err, "couldn't add default gateway to %v", nsName)
 	}
-	return nil
-}
-
-// setIptablesRules sets rules to allow container connectivity
-func setIptablesRules(masqueradeIp, netInterface, vethName string) error {
-	// Policy DROP by default.
-	if err := exec.Command("iptables", "-P", "FORWARD", "DROP").Run(); err != nil {
-		return errors.Wrap(err, "couldn't policy DROP by default")
-	}
-
-	// allow masquerading
-	if err := exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", masqueradeIp, "-o", netInterface, "-j", "MASQUERADE").Run(); err != nil {
-		return errors.Wrap(err, "couldn't allow masquerading")
-	}
-
-	// Allow forwarding between net interface and veth interface
-	if err := exec.Command("iptables", "-A", "FORWARD", "-i", netInterface, "-o", vethName, "-j", "ACCEPT").Run(); err != nil {
-		return errors.Wrapf(err, "couldn't allow forwarding from net interface %q to veth interface %q", netInterface, vethName)
-	}
-	if err := exec.Command("iptables", "-A", "FORWARD", "-o", netInterface, "-i", vethName, "-j", "ACCEPT").Run(); err != nil {
-		return errors.Wrapf(err, "couldn't allow forwarding from veth interface %q to net interface %q", netInterface, vethName)
-	}
-
 	return nil
 }
 

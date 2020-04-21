@@ -15,5 +15,6 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.2
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
+	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df
 	golang.org/x/sys v0.0.0-20200408040146-ea54a3c99b9b
 )

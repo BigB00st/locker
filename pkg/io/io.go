@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"golang.org/x/sys/unix"
 )
 
 // CmdOut runs command and return output as string
@@ -23,15 +22,6 @@ func CmdOut(binary string, arg ...string) (string, error) {
 	}
 
 	return string(output), nil
-}
-
-// GetFdFromPath returns file descriptor from path
-func GetFdFromPath(path string) (int, error) {
-	fd, err := unix.Open(path, unix.O_RDONLY, 0)
-	if err != nil {
-		return -1, err
-	}
-	return fd, nil
 }
 
 // ResolvePath returns full path if exists (resolving link if necessary)
