@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"gitlab.com/amit-yuval/locker/pkg/io"
@@ -149,4 +150,17 @@ func Pad(length int, char string, list ...string) string {
 		ret += v + strings.Repeat(" ", length-len(v))
 	}
 	return ret
+}
+
+// SplitToString joins int array to string with seperator
+func SplitToString(a []int, sep string) string {
+	if len(a) == 0 {
+		return ""
+	}
+
+	b := make([]string, len(a))
+	for i, v := range a {
+		b[i] = strconv.Itoa(v)
+	}
+	return strings.Join(b, sep)
 }
