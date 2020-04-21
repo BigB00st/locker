@@ -44,13 +44,20 @@ var SYS_SETNS = map[string]uintptr{
 // NetConfig holds the network namespace name of the container
 type NetConfig struct {
 	nsName string
+	sub    *subnet
 }
 
 // CreateConnectivity creates isolated network connectivity for the container
 func CreateConnectivity() (NetConfig, error) {
+	//fmt.Println(generateValidSubnet())
 	netConfig := NetConfig{}
 
 	netInterface, err := connectedInterfaceName()
+	if err != nil {
+		return netConfig, err
+	}
+
+	netConfig.sub, err = generateValidSubnet()
 	if err != nil {
 		return netConfig, err
 	}
@@ -133,6 +140,8 @@ func (c *NetConfig) Cleanup() {
 	if c.nsName != "" {
 		deleteNetNs(c.nsName)
 	}
+	c.sub.destruct()
+
 }
 
 // joinNsByName gets file descriptor of requested network namespace, calls setNs with fd

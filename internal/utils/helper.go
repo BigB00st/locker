@@ -1,16 +1,22 @@
 package utils
 
 import (
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"gitlab.com/amit-yuval/locker/pkg/io"
 
 	uuid "github.com/nu7hatch/gouuid"
 	"github.com/pkg/errors"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // IsChild is created in a new pid namespace, so it will gain pid 1
 func IsChild() bool {
@@ -163,4 +169,9 @@ func SplitToString(a []int, sep string) string {
 		b[i] = strconv.Itoa(v)
 	}
 	return strings.Join(b, sep)
+}
+
+// RandRange returns a number in the range max to min
+func RandRange(max, min int) int {
+	return rand.Intn(max-min) + min
 }
