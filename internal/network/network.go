@@ -73,11 +73,11 @@ func CreateConnectivity() (NetConfig, error) {
 		return netConfig, err
 	}
 	vethPeerName := vethName + "-p"
-	vethIp := "10.200.1.1"
+	vethIp := netConfig.sub.nextIp()
 	vethCIDR := vethIp + "/24"
-	vethPeerCIDR := "10.200.1.2/24"
+	vethPeerCIDR := netConfig.sub.nextIp() + "/24"
 	loopback := "lo"
-	masqueradeIp := "10.200.1.0/255.255.255.0"
+	masqueradeIp := netConfig.sub.toString() + "/255.255.255.0"
 
 	// create network namespace
 	if err := addNetNs(nsName); err != nil {
@@ -140,8 +140,9 @@ func (c *NetConfig) Cleanup() {
 	if c.nsName != "" {
 		deleteNetNs(c.nsName)
 	}
-	c.sub.destruct()
-
+	if c.sub != nil {
+		c.sub.destruct()
+	}
 }
 
 // joinNsByName gets file descriptor of requested network namespace, calls setNs with fd
@@ -257,14 +258,14 @@ func setIptablesRules(masqueradeIp, netInterface, vethName string) error {
 	}
 
 	// Flush forward rules,
-	if err := exec.Command("iptables", "-F", "FORWARD").Run(); err != nil {
-		return errors.Wrap(err, "couldn't flush forward rules")
-	}
+	//if err := exec.Command("iptables", "-F", "FORWARD").Run(); err != nil {
+	//	return errors.Wrap(err, "couldn't flush forward rules")
+	//}
 
 	// Flush nat rules.
-	if err := exec.Command("iptables", "-t", "nat", "-F").Run(); err != nil {
-		return errors.Wrap(err, "couldn't Flush nat rules")
-	}
+	//if err := exec.Command("iptables", "-t", "nat", "-F").Run(); err != nil {
+	//	return errors.Wrap(err, "couldn't Flush nat rules")
+	//}
 
 	// allow masquerading
 	if err := exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", masqueradeIp, "-o", netInterface, "-j", "MASQUERADE").Run(); err != nil {

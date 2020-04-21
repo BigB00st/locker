@@ -17,23 +17,31 @@ const (
 )
 
 type subnet struct {
-	addresses []int
-	curAddr   int
+	address []int
+	curAddr int
 }
 
 func newSubnet(subnetAddr []int) *subnet {
 	return &subnet{
-		addresses: subnetAddr,
-		curAddr:   1,
+		address: subnetAddr,
+		curAddr: 0,
 	}
 }
 
 func (s *subnet) toString() string {
-	return utils.SplitToString(s.addresses, ".")
+	return utils.SplitToString(s.address, ".")
 }
 
 func (s *subnet) write() error {
 	return io.WriteToFile(subnetsFile, os.O_APPEND|os.O_WRONLY, s.toString()+"\n")
+}
+
+func (s *subnet) nextIp() string {
+	s.curAddr++
+	newAddr := make([]int, 4)
+	copy(newAddr, s.address)
+	newAddr[3] = s.curAddr
+	return utils.SplitToString(newAddr, ".")
 }
 
 func (s *subnet) destruct() error {
@@ -48,6 +56,7 @@ func (s *subnet) destruct() error {
 		m.Unlock()
 		return errors.Wrap(err, "couldn't open subnets file")
 	}
+
 	contentStr := string(dat)
 	contentStr = strings.Replace(contentStr, s.toString()+"\n", "", 1)
 	io.WriteToFile(subnetsFile, os.O_TRUNC|os.O_WRONLY, contentStr)

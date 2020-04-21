@@ -35,10 +35,12 @@ install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	install -Dm755 bin/$(PROJECTNAME) $(DESTDIR)$(PREFIX)/bin/$(PROJECTNAME)
 	mkdir -p $(DESTDIR)/etc/$(PROJECTNAME)
-	install -Dm644 seccomp/seccomp_default.json -t $(DESTDIR)/etc/$(PROJECTNAME)
+	install -Dm644 internal/seccomp/seccomp_default.json -t $(DESTDIR)/etc/$(PROJECTNAME)
 	mkdir -p $(DESTDIR)/var/lib/$(PROJECTNAME)
 	echo {} > $(DESTDIR)/var/lib/$(PROJECTNAME)/images.json
 	chmod 644 $(DESTDIR)/var/lib/$(PROJECTNAME)/images.json
+	touch $(DESTDIR)/var/lib/$(PROJECTNAME)/subnets
+	chmod 644 $(DESTDIR)/var/lib/$(PROJECTNAME)/subnets
 
 ## uninstall: removes the executable from /usr/local/bin and delete the config files
 uninstall:
