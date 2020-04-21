@@ -44,6 +44,7 @@ var SYS_SETNS = map[string]uintptr{
 // NetConfig holds the network namespace name of the container
 type NetConfig struct {
 	nsName string
+	sub    *subnet
 }
 
 // CreateConnectivity creates isolated network connectivity for the container
@@ -51,6 +52,11 @@ func CreateConnectivity() (NetConfig, error) {
 	netConfig := NetConfig{}
 
 	netInterface, err := connectedInterfaceName()
+	if err != nil {
+		return netConfig, err
+	}
+
+	netConfig.sub, err = generateValidSubnet()
 	if err != nil {
 		return netConfig, err
 	}
@@ -66,11 +72,11 @@ func CreateConnectivity() (NetConfig, error) {
 		return netConfig, err
 	}
 	vethPeerName := vethName + "-p"
-	vethIp := "10.200.1.1"
+	vethIp := netConfig.sub.nextIp()
 	vethCIDR := vethIp + "/24"
-	vethPeerCIDR := "10.200.1.2/24"
+	vethPeerCIDR := netConfig.sub.nextIp() + "/24"
 	loopback := "lo"
-	masqueradeIp := "10.200.1.0/255.255.255.0"
+	masqueradeIp := netConfig.sub.toString() + "/255.255.255.0"
 
 	// create network namespace
 	if err := addNetNs(nsName); err != nil {
@@ -128,10 +134,13 @@ func CreateConnectivity() (NetConfig, error) {
 	return netConfig, nil
 }
 
-// Cleanup deletes the created network namespace
+// Cleanup deletes the created network namespace, and updates subnets file
 func (c *NetConfig) Cleanup() {
 	if c.nsName != "" {
 		deleteNetNs(c.nsName)
+	}
+	if c.sub != nil {
+		c.sub.destruct()
 	}
 }
 
@@ -245,16 +254,6 @@ func setIptablesRules(masqueradeIp, netInterface, vethName string) error {
 	// Policy DROP by default.
 	if err := exec.Command("iptables", "-P", "FORWARD", "DROP").Run(); err != nil {
 		return errors.Wrap(err, "couldn't policy DROP by default")
-	}
-
-	// Flush forward rules,
-	if err := exec.Command("iptables", "-F", "FORWARD").Run(); err != nil {
-		return errors.Wrap(err, "couldn't flush forward rules")
-	}
-
-	// Flush nat rules.
-	if err := exec.Command("iptables", "-t", "nat", "-F").Run(); err != nil {
-		return errors.Wrap(err, "couldn't Flush nat rules")
 	}
 
 	// allow masquerading

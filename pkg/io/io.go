@@ -1,6 +1,7 @@
 package io
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -97,4 +98,42 @@ func MkdirIfNotExist(dir string) {
 	if !FileExists(dir) {
 		os.MkdirAll(dir, os.ModeDir)
 	}
+}
+
+// FileContainsLine returns true if given file contains the given line
+func FileContainsLine(fileName, line string) bool {
+	contains := false
+
+	file, err := os.Open(fileName)
+	if err != nil {
+		return false
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		if scanner.Text() == line {
+			contains = true
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return false
+	}
+
+	return contains
+}
+
+// WriteToFile writes text to file
+func WriteToFile(fileName string, flag int, text string) error {
+	f, err := os.OpenFile(fileName, flag, 0600)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err = f.WriteString(text); err != nil {
+		return err
+	}
+	return nil
 }

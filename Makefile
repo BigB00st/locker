@@ -5,11 +5,11 @@ PREFIX = /usr/local
 
 # Go related variables.
 GOBASE := $(shell pwd)
+GOCMD := $(GOBASE)/cmd/locker
 GOPATH := $(GOBASE)/vendor:$(GOBASE)
 GOBIN := $(GOBASE)/bin
-GOFILES := $(wildcard *.go)
 
-LDFLAGS=-trimpath
+LDFLAGS=-trimpath -mod=readonly
 
 all: options build
 
@@ -23,7 +23,7 @@ options:
 
 ## get: Install missing dependencies. e.g; make get get=github.com/foo/bar
 get:
-	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get $(get)
+	cd $(GOCMD) && GOPATH=$(GOPATH) GOBIN=$(GOBIN) go get $(get)
 	chmod u+w -R $(GOBASE)/vendor
 
 ## build: Compile the binary, place it in ./bin
@@ -35,10 +35,12 @@ install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	install -Dm755 bin/$(PROJECTNAME) $(DESTDIR)$(PREFIX)/bin/$(PROJECTNAME)
 	mkdir -p $(DESTDIR)/etc/$(PROJECTNAME)
-	install -Dm644 seccomp/seccomp_default.json -t $(DESTDIR)/etc/$(PROJECTNAME)
+	install -Dm644 internal/seccomp/seccomp_default.json -t $(DESTDIR)/etc/$(PROJECTNAME)
 	mkdir -p $(DESTDIR)/var/lib/$(PROJECTNAME)
 	echo {} > $(DESTDIR)/var/lib/$(PROJECTNAME)/images.json
 	chmod 644 $(DESTDIR)/var/lib/$(PROJECTNAME)/images.json
+	touch $(DESTDIR)/var/lib/$(PROJECTNAME)/subnets
+	chmod 644 $(DESTDIR)/var/lib/$(PROJECTNAME)/subnets
 
 ## uninstall: removes the executable from /usr/local/bin and delete the config files
 uninstall:
@@ -57,7 +59,7 @@ clean:
 
 bin/locker: get
 	@echo "Building binary..."
-	GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build $(LDFLAGS) -o $(GOBIN)/$(PROJECTNAME) $(GOFILES)
+	cd $(GOCMD) && GOPATH=$(GOPATH) GOBIN=$(GOBIN) go build $(LDFLAGS) -o $(GOBIN)/$(PROJECTNAME)
 
 go-clean:
 	@echo "Cleaning build cache"
@@ -67,3 +69,5 @@ go-clean:
 help: Makefile
 	@echo "Choose a command run in make:"
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
+
+.PHONY: all options get build install uninstall clean go-clean help
